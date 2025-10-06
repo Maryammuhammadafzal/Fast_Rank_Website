@@ -122,11 +122,11 @@ export default function PackagesPage() {
             {packages.map((pkg) => (
               <Card
                 key={pkg.id}
-                className={`relative ${pkg.popular ? "ring-2 ring-brand-cyan shadow-lg scale-105" : ""}`}
+                className={`relative ${pkg.popular ? "ring-2 ring-accent shadow-lg scale-105" : ""}`}
               >
                 {pkg.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-brand-cyan text-black font-semibold px-4 py-1">Most Popular</Badge>
+                    <Badge className="bg-accent text-black font-semibold px-4 py-1">Most Popular</Badge>
                   </div>
                 )}
 
@@ -157,7 +157,7 @@ export default function PackagesPage() {
                   </ul>
 
                   <Button
-                    className={`w-full ${pkg.popular ? "bg-brand-cyan hover:bg-brand-cyan/90 text-black" : ""}`}
+                    className={`w-full ${pkg.popular ? "bg-accent hover:bg-accent/90 text-black" : ""}`}
                     size="lg"
                     onClick={() => handleBuyNow(pkg)}
                   >

@@ -58,6 +58,7 @@
   --color-primary: oklch(1 0 0);
   --color-primary-foreground: oklch(0.25 0.15 285);
   --color-secondary: oklch(0.8 0.15 180);
+  --brand-cyan: oklch(0.8 0.15 180);
   --color-secondary-foreground: oklch(0.15 0.1 285);
   --color-muted: oklch(0.25 0.1 285);
   --color-muted-foreground: oklch(0.7 0 0);
