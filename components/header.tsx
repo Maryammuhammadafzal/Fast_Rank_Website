@@ -17,7 +17,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-primary/95 backdrop-blur supports-[backdrop-filter]:bg-accent">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary/5 backdrop-blur shadow-lg shadow-accent-foreground/30 supports-[backdrop-filter]:bg-white">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo - Left */}
@@ -32,31 +32,31 @@ export function Header() {
           <nav className="hidden md:flex items-center justify-center space-x-8 flex-1">
             <Link
               href="/marketplace"
-              className="text-secondary-foreground hover:text-primary-foreground transition-colors font-medium"
+              className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Marketplace
             </Link>
             <Link
               href="/services"
-              className="text-secondary-foreground hover:text-primary-foreground transition-colors font-medium"
+              className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Services
             </Link>
             <Link
               href="/packages"
-              className="text-secondary-foreground hover:text-primary-foreground transition-colors font-medium"
+              className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Packages
             </Link>
             <Link
               href="/blog"
-              className="text-secondary-foreground hover:text-primary-foreground transition-colors font-medium"
+              className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Blog
             </Link>
             <Link
               href="/support"
-              className="text-secondary-foreground hover:text-primary-foreground transition-colors font-medium"
+              className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Support
             </Link>
@@ -104,7 +104,7 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link href="/signup" className="hidden md:inline-block">
-                  <Button size="sm" className="bg-secondary text-secondary-foreground border border-accent-foreground hover:bg-secondary/90">
+                  <Button size="sm" className="bg-secondary-foreground text-white border border-accent-foreground hover:bg-secondary/90">
                     Sign Up
                   </Button>
                 </Link>

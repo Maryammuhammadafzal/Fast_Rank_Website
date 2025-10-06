@@ -40,56 +40,56 @@ export default function MarketplacePage() {
   const [trafficFilter, setTrafficFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
 
-  const supabase = createClient()
+  // const supabase = createClient()
 
-  const fetchProducts = async () => {
-    try {
-      console.log("[v0] Fetching products from Supabase...")
-      setLoading(true)
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
+  // const fetchProducts = async () => {
+  //   try {
+  //     console.log("[v0] Fetching products from Supabase...")
+  //     setLoading(true)
+  //     const { data, error } = await supabase
+  //       .from("products")
+  //       .select("*")
+  //       .eq("status", "active")
+  //       .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("[v0] Error fetching products:", error)
-        throw error
-      }
+  //     if (error) {
+  //       console.error("[v0] Error fetching products:", error)
+  //       throw error
+  //     }
 
-      console.log("[v0] Successfully fetched products:", data?.length || 0)
-      setProducts(data || [])
-    } catch (error) {
-      console.error("[v0] Error fetching products:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  //     console.log("[v0] Successfully fetched products:", data?.length || 0)
+  //     setProducts(data || [])
+  //   } catch (error) {
+  //     console.error("[v0] Error fetching products:", error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
-  useEffect(() => {
-    fetchProducts()
+  // useEffect(() => {
+  //   fetchProducts()
 
-    const channel = supabase
-      .channel("products-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "products",
-          filter: "status=eq.active",
-        },
-        (payload) => {
-          console.log("[v0] Real-time update received:", payload)
-          fetchProducts()
-        },
-      )
-      .subscribe()
+  //   const channel = supabase
+  //     .channel("products-changes")
+  //     .on(
+  //       "postgres_changes",
+  //       {
+  //         event: "*",
+  //         schema: "public",
+  //         table: "products",
+  //         filter: "status=eq.active",
+  //       },
+  //       (payload : any) => {
+  //         console.log("[v0] Real-time update received:", payload)
+  //         fetchProducts()
+  //       },
+  //     )
+  //     .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+  //   return () => {
+  //     supabase.removeChannel(channel)
+  //   }
+  // }, [])
 
   const categories = ["all", ...Array.from(new Set(products.map((product) => product.category)))]
 
