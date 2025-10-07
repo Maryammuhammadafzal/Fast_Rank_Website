@@ -14,7 +14,6 @@ import { toast } from "sonner"
 
 
 export default function SignupPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
@@ -10,7 +10,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 export default function UserLoginPage() {
   const [email, setEmail] = useState("")
@@ -18,8 +18,14 @@ export default function UserLoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const { login } = useAuth()
-  const router = useRouter()
+  const router = useRouter();
+
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem('isLoggedIn');
+    if (userLoggedIn || userLoggedIn === 'true') {
+      router.push('/dashboard');
+    }
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,12 +33,27 @@ export default function UserLoginPage() {
     setIsLoading(true)
 
     try {
-      const result = await login(email, password)
+      const loginUser = {
+        user_email: email,
+        user_pass: password
+      }
+      const res = await fetch("https://guestpostnow.io/guestpost-backend/user-login.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginUser),
+      });
 
-      if (result.success) {
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("isLoggedIn", "true")
+        localStorage.setItem("user_id", email)
+        console.log(data);
+        toast.success('Login Successfully');
         router.push("/dashboard")
       } else {
-        setError(result.error || "Login failed")
+        toast.error('Invalid Credentials');
       }
     } catch (err) {
       setError("An unexpected error occurred")
