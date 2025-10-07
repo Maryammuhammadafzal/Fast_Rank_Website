@@ -2,27 +2,32 @@
 
 import type React from "react"
 
-import { useState } from "react"
-// import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Header } from "../../components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 
 
 export default function SignupPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
-  // const { signup } = useAuth()
-  // const router = useRouter()
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem('isLoggedIn');
+    if (userLoggedIn || userLoggedIn === 'true') {
+      router.push('/dashboard');
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,39 +36,34 @@ export default function SignupPage() {
 
     try {
       const newUser = {
-        user_login: name,
-        user_nicename: name,
+        user_name: name,
         user_email: email,
-        user_url: '',
-        user_registered: new Date().toISOString(),
-        user_status: 'inactive',
         user_pass: password,
       }
 
-      const res = await fetch("https://guestpostnow.io/guestpost-backend/user-registered.php", {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(newUser),
       });
-
       const text = await res.text();
       const data = JSON.parse(text);
 
-      if (!res.ok) {
+      if (res.ok) {
+        localStorage.setItem('user_id', email);
+        localStorage.setItem('isLoggedIn', 'true');
+        toast.success(`Confirmation Email has been sent`);
+        router.push('/dashboard');
+      }
+      else {
         alert(data.message)
-        console.log(data);
         toast.error(`Failed to create an account`)
         throw new Error(`Server error: ${res.status} - ${text}`);
       }
-      if (res.ok) {
-        console.log(data);
-        toast.success(`Confirmation Email has been sent`);
-        // router.push('/dashboard');
-      }
     } catch (err) {
-      setError("An unexpected error occurred")
+      setError(`Failed to create an Account ${err}`)
     } finally {
       setIsLoading(false)
     }
