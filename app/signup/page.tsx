@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+// import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Header } from "@/components/header"
+import { Header } from "../../components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,7 +22,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   // const { signup } = useAuth()
-  const router = useRouter()
+  // const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

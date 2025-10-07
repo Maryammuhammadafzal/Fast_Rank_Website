@@ -1,6 +1,6 @@
 "use client"
 
-import { Header } from "@/components/header"
+
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,9 +10,10 @@ import Link from "next/link"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
+import Header from "@/components/header"
 
 export default function HomePage() {
-  const router = useRouter()
+  // const router = useRouter()
 
   const handleBuyNow = (packageName: string, price: number, description: string) => {
     const params = new URLSearchParams({
@@ -21,7 +22,7 @@ export default function HomePage() {
       description: description,
       type: "package",
     })
-    router.push(`/checkout?${params.toString()}`)
+    // router.push(`/checkout?${params.toString()}`)
   }
 
   return (

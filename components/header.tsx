@@ -1,7 +1,7 @@
 "use client"
 
 import { Menu, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "../components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
@@ -71,7 +71,7 @@ export function Header() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-primary-foreground hover:bg-primary-foreground/10"
+                      className="text-secondary-foreground hover:bg-primary-foreground/10"
                     >
                       <User className="h-4 w-4 mr-2" />
                       <span className="hidden sm:inline">{user?.name}</span>
@@ -104,7 +104,7 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link href="/signup" className="hidden md:inline-block">
-                  <Button size="sm" className="bg-secondary-foreground text-white border border-accent-foreground hover:bg-secondary/90">
+                  <Button size="sm" className="bg-secondary-foreground text-white border border-accent-foreground hover:bg-accent-foreground/80">
                     Sign Up
                   </Button>
                 </Link>
