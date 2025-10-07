@@ -6,13 +6,54 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function Header() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(false);
+
   const router = useRouter()
 
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem('isLoggedIn');
+    if (userLoggedIn || userLoggedIn === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, [])
+
+   useEffect(() => {
+    // Load user data 
+    const fetchUser = async () => {
+      const res = await fetch("https://guestpostnow.io/guestpost-backend/users.php", {
+        method: "GET"
+      });
+      const userData = await res.json();
+      if (userData) {
+        // console.log(userData);
+
+        const user_id = localStorage.getItem('user_id')
+        // console.log(user_id);
+        const getUser = userData.find((item: any) => item.user_email === user_id);
+        if (getUser) {
+          setUser(getUser)
+        } else {
+          setUser(null)
+        }
+
+        // console.log(user);
+
+      } else {
+        setUser(null)
+      }
+    }
+
+    // Load user data
+    fetchUser();
+
+  }, [])
+
   const handleLogout = () => {
-    logout()
+    // logout()
     router.push("/")
   }
 

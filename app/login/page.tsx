@@ -25,7 +25,7 @@ export default function UserLoginPage() {
     if (userLoggedIn || userLoggedIn === 'true') {
       router.push('/dashboard');
     }
-  })
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
