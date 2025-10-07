@@ -54,11 +54,12 @@ export default function SignupPage() {
       if (!res.ok) {
         alert(data.message)
         console.log(data);
+        toast.error(`Failed to create an account`)
         throw new Error(`Server error: ${res.status} - ${text}`);
       }
       if (res.ok) {
-        let msg = `Confirmation Email has been sent`
-        toast.success(msg)
+        console.log(data);
+        toast.success(`Confirmation Email has been sent`)
       }
     } catch (err) {
       setError("An unexpected error occurred")
