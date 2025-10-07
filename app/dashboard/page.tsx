@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -118,6 +118,41 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
+  const [user, setUser] = useState(null);
+
+    useEffect(() => {
+      const fetchUser = async () => {
+        const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+          method: "GET"
+        });
+        console.log(res);
+        
+        const text = await res.text();
+        const userData = JSON.parse(text);
+        console.log(userData);
+        
+        if (userData) {
+          const user_id = localStorage.getItem('user_id')
+          const getUser = userData.find((item: any) => item.user_email === user_id);
+          console.log(getUser);
+          
+          setUser(getUser)
+        } else {
+          setUser(null)
+        }
+      }
+      // Load user data
+      fetchUser();
+    }, [])
+  
+    useEffect(() => {
+      const userLoggedIn = localStorage.getItem('isLoggedIn');
+      if (userLoggedIn || userLoggedIn === 'true') {
+        setIsAuthenticated(true);
+      } else {
+        router.push('/login')
+      }
+    }, [])
 
   const getStatusColor = (status: string) => {
     if (!status) return "bg-muted text-muted-foreground border-border"
