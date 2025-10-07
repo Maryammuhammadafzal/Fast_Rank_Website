@@ -58,12 +58,11 @@ export default function SignupPage() {
         router.push('/dashboard');
       }
       else {
-        alert(data.message)
         toast.error(`Failed to create an account`)
         throw new Error(`Server error: ${res.status} - ${text}`);
       }
     } catch (err) {
-      setError(`Failed to create an Account ${err}`)
+      setError(`Failed to create an Account`);
     } finally {
       setIsLoading(false)
     }
