@@ -59,7 +59,8 @@ export default function SignupPage() {
       }
       if (res.ok) {
         console.log(data);
-        toast.success(`Confirmation Email has been sent`)
+        toast.success(`Confirmation Email has been sent`);
+        // router.push('/dashboard');
       }
     } catch (err) {
       setError("An unexpected error occurred")
