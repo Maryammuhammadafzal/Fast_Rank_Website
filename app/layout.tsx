@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "Rank - Premium Guest Post Services",
@@ -22,9 +23,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} antialiased`}>
       <body className="font-sans">
         <AuthProvider>{children}</AuthProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )

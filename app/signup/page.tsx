@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
+
 
 export default function SignupPage() {
   const [name, setName] = useState("")
@@ -19,7 +21,7 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const { signup } = useAuth()
+  // const { signup } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,12 +30,35 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const result = await signup(name, email, password)
+      const newUser = {
+        user_login: name,
+        user_nicename: name,
+        user_email: email,
+        user_url: '',
+        user_registered: new Date().toISOString(),
+        user_status: 'inactive',
+        user_pass: password,
+      }
 
-      if (result.success) {
-        router.push("/dashboard")
-      } else {
-        setError(result.error || "Signup failed")
+      const res = await fetch("https://guestpostnow.io/guestpost-backend/user-registered.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUser),
+      });
+
+      const text = await res.text();
+      const data = JSON.parse(text);
+
+      if (!res.ok) {
+        alert(data.message)
+        console.log(data);
+        throw new Error(`Server error: ${res.status} - ${text}`);
+      }
+      if (res.ok) {
+        let msg = `Confirmation Email has been sent`
+        toast.success(msg)
       }
     } catch (err) {
       setError("An unexpected error occurred")
