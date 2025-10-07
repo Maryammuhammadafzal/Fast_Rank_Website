@@ -37,7 +37,7 @@ export default function UserLoginPage() {
         user_email: email,
         user_pass: password
       }
-      const res = await fetch("https://guestpostnow.io/guestpost-backend/user-login.php", {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/user-login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,6 +45,8 @@ export default function UserLoginPage() {
         body: JSON.stringify(loginUser),
       });
 
+      console.log(res);
+      
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("isLoggedIn", "true")
