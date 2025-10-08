@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -49,9 +50,35 @@ export function Header() {
   }, [])
 
 
-  const handleLogout = () => {
-    // logout()
-    router.push("/")
+  const handleLogout = async () => {
+    if (confirm("Are you sure you want to logout?")) {
+      // Clear all user data
+      try {
+        const userEmail = localStorage.getItem("user_id") || user?.user_email; // Assuming stored during login
+        if (!userEmail) throw new Error("User not logged in");
+
+        const res = await fetch("http://localhost:8080/fast-rank-backend/user-logout.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: user?.id, balance: 0 }),
+        });
+
+        const data = await res.json();
+        if (userEmail) {
+          localStorage.removeItem("user_id")
+          localStorage.removeItem("isLoggedIn")
+          toast.success("Logged out successfully. All data has been deleted.");
+          // Redirect to home page
+          router.push("/")
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (error: any) {
+        toast.error(`Logout failed:  ${error.message}`);
+      }
+    };
   }
 
   return (

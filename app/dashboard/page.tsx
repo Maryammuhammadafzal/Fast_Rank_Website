@@ -32,6 +32,7 @@ import {
   ArrowUpCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 // Mock data for dashboard
 const mockOrders = [
@@ -93,14 +94,7 @@ const mockOrders = [
   },
 ]
 
-const mockStats = {
-  totalOrders: 12,
-  activeOrders: 3,
-  completedOrders: 8,
-  totalSpent: 2847,
-  avgRating: 4.8,
-  savedAmount: 450,
-}
+
 
 const sidebarItems = [
   { name: "Overview", value: "overview", icon: Home, active: true },
@@ -116,43 +110,103 @@ const sidebarItems = [
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
   const [user, setUser] = useState(null);
 
-    useEffect(() => {
-      const fetchUser = async () => {
-        const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
-          method: "GET"
-        });
-        console.log(res);
-        
-        const text = await res.text();
-        const userData = JSON.parse(text);
-        console.log(userData);
-        
-        if (userData) {
-          const user_id = localStorage.getItem('user_id')
-          const getUser = userData.find((item: any) => item.user_email === user_id);
-          console.log(getUser);
-          
-          setUser(getUser)
-        } else {
-          setUser(null)
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+        method: "GET"
+      });
+      console.log(res);
+
+      const text = await res.text();
+      const userData = JSON.parse(text);
+      console.log(userData);
+
+      if (userData) {
+        const user_id = localStorage.getItem('user_id')
+        const getUser = userData.find((item: any) => item.user_email === user_id);
+        console.log(getUser);
+
+        setUser(getUser)
+      } else {
+        setUser(null)
+      }
+    }
+    // Load user data
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem('isLoggedIn');
+    if (userLoggedIn || userLoggedIn === 'true') {
+      setIsAuthenticated(true);
+    } else {
+      router.push('/login')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      // Load user stats
+
+      const loadOrders = async () => {
+        const user_id = localStorage.getItem('user_id')
+        try {
+          const res = await fetch("https://guestpostnow.io/guestpost-backend/orders.php", {
+            method: "GET"
+          });
+          const text = await res.text();
+          const data = JSON.parse(text);
+          // console.log("Orders Data", data);
+          const allOrders = data.data;
+          const orders = allOrders && allOrders.filter((order: any) => order.user_id === user_id);
+          const balance = Math.abs(user.balance)
+          // console.log("Service orders",balance);
+
+          const totalOrders = orders ? orders.length : 0
+          const activeOrders = orders ? orders.filter(
+            (order: any) => order.status === "pending" || order.status === "processing",
+          ).length : 0
+
+          const totalSpent = orders ? orders.reduce(
+            (sum: number, order: any) => sum + (parseInt(order.price) || 0),
+            0,
+          ) : 0
+
+          const mockStats = {
+            totalOrders: 12,
+            activeOrders: 3,
+            completedOrders: 8,
+            totalSpent: 2847,
+            avgRating: 4.8,
+            savedAmount: 450,
+          }
+          setStats({
+            totalOrders,
+            activeOrders,
+            totalSpent,
+            accountBalance: balance,
+          })
+          setIsLoading(false);
+          // setOrders(filteredOrders);
+          // const serviceOrders = JSON.parse(localStorage.getItem("userServiceOrders") || "[]")
+          // const balance = (Math.floor(user?.balance)).toLocaleString().slice(0,1) === "-" ? (Math.floor(user.balance)).toLocaleString().slice(1,user.balance.toString().length) : (Math.floor(user.balance)).toLocaleString();
+        } catch (error) {
+          console.error("Error loading admin orders:", error)
         }
       }
-      // Load user data
-      fetchUser();
-    }, [])
-  
-    useEffect(() => {
-      const userLoggedIn = localStorage.getItem('isLoggedIn');
-      if (userLoggedIn || userLoggedIn === 'true') {
-        setIsAuthenticated(true);
-      } else {
-        router.push('/login')
-      }
-    }, [])
+
+      loadOrders()
+
+
+    }
+  }, [user])
 
   const getStatusColor = (status: string) => {
     if (!status) return "bg-muted text-muted-foreground border-border"
@@ -215,11 +269,10 @@ export default function DashboardPage() {
                     setActiveTab(item.value)
                     setSidebarOpen(false)
                   }}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-muted w-full text-left ${
-                    activeTab === item.value
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-muted w-full text-left ${activeTab === item.value
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   {item.name}
@@ -262,7 +315,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Account Balance</p>
-                          <p className="text-2xl font-bold text-secondary">$1,250.00</p>
+                          <p className="text-2xl font-bold text-secondary">${user?.balance}</p>
                         </div>
                         <div className="h-12 w-12 bg-secondary/10 rounded-full flex items-center justify-center">
                           <DollarSign className="h-6 w-6 text-secondary" />
@@ -865,11 +918,10 @@ export default function DashboardPage() {
                             <Button
                               key={amount}
                               variant="outline"
-                              className={`h-16 text-lg font-semibold ${
-                                fundAmount === amount.toString()
-                                  ? "border-secondary bg-secondary/10 text-secondary"
-                                  : "bg-transparent"
-                              }`}
+                              className={`h-16 text-lg font-semibold ${fundAmount === amount.toString()
+                                ? "border-secondary bg-secondary/10 text-secondary"
+                                : "bg-transparent"
+                                }`}
                               onClick={() => setFundAmount(amount.toString())}
                             >
                               ${amount}
@@ -905,11 +957,10 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                           <button
                             onClick={() => setSelectedPaymentMethod("card-4242")}
-                            className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${
-                              selectedPaymentMethod === "card-4242"
-                                ? "border-secondary bg-secondary/5"
-                                : "hover:bg-muted/50"
-                            }`}
+                            className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "card-4242"
+                              ? "border-secondary bg-secondary/5"
+                              : "hover:bg-muted/50"
+                              }`}
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
@@ -927,11 +978,10 @@ export default function DashboardPage() {
 
                           <button
                             onClick={() => setSelectedPaymentMethod("new-card")}
-                            className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${
-                              selectedPaymentMethod === "new-card"
-                                ? "border-secondary bg-secondary/5"
-                                : "hover:bg-muted/50"
-                            }`}
+                            className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "new-card"
+                              ? "border-secondary bg-secondary/5"
+                              : "hover:bg-muted/50"
+                              }`}
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
