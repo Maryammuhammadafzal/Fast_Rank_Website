@@ -9,41 +9,42 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/contexts/auth-context"
+// import { useAuth } from "@/contexts/auth-context"
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const { login } = useAuth()
+  // const { login } = useAuth()
   const router = useRouter()
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    try {
-      const result = await login(email, password)
-      if (result.success) {
-        const authService = (await import("@/lib/auth")).AuthService.getInstance()
-        const currentUser = authService.getCurrentUser()
+    // try {
+    //   const result = await login(email, password)
+    //   if (result.success) {
+    //     const authService = (await import("@/lib/auth")).AuthService.getInstance()
+    //     const currentUser = authService.getCurrentUser()
 
-        if (currentUser?.role === "admin") {
-          router.push("/admin")
-        } else {
-          setError("Access denied. Admin credentials required.")
-          authService.logout()
-        }
-      } else {
-        setError(result.error || "Login failed")
-      }
-    } catch (err) {
-      setError("An unexpected error occurred")
-    } finally {
-      setIsLoading(false)
-    }
+    //     if (currentUser?.role === "admin") {
+    //       router.push("/admin")
+    //     } else {
+    //       setError("Access denied. Admin credentials required.")
+    //       authService.logout()
+    //     }
+    //   } else {
+    //     setError(result.error || "Login failed")
+    //   }
+    // } catch (err) {
+    //   setError("An unexpected error occurred")
+    // } finally {
+    //   setIsLoading(false)
+    // }
   }
 
   return (
