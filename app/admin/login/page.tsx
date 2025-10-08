@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { useState } from "react"
-// import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 // import { useAuth } from "@/contexts/auth-context"
 
 export default function AdminLoginPage() {
@@ -17,16 +18,35 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   // const { login } = useAuth()
-  // const router = useRouter()
+  const router = useRouter()
 
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     // try {
-    //   const result = await login(email, password)
+    const result = {
+      email: email,
+      password: password
+    }
+
+    if (email && password) {
+      if (email === "admin@marketplace.com" && password === "admin123") {
+        // Save admin login state
+        toast.success('Login Successfully')
+        localStorage.setItem("role", "admin")
+        localStorage.setItem("is-Authenticated", "true")
+        localStorage.setItem("adminEmail", email)
+
+        // Redirect to admin dashboard
+        router.push("/admin")
+      } else {
+        setError("Invalid credentials. Please check your username and password.")
+        toast.error(`Invalid credentials. Please check your username and password.`);
+      }
+    }
     //   if (result.success) {
     //     const authService = (await import("@/lib/auth")).AuthService.getInstance()
     //     const currentUser = authService.getCurrentUser()

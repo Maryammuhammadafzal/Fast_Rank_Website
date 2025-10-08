@@ -26,7 +26,7 @@ const recentActivities = [
   { id: 5, type: "message", message: "Support ticket created by user@example.com", time: "3 hours ago" },
 ]
 
-export default function AdminDashboard() {
+export default function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (

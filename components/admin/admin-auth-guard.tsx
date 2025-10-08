@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -11,7 +11,9 @@ interface AdminAuthGuardProps {
 }
 
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -21,12 +23,12 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
         return
       }
 
-      if (user?.role !== "admin") {
-        router.push("/dashboard")
-        return
-      }
+  //     if (user?.role !== "admin") {
+  //       router.push("/dashboard")
+  //       return
+  //     }
     }
-  }, [isAuthenticated, isLoading, user, router])
+  }, [])
 
   if (isLoading) {
     return (
@@ -39,9 +41,9 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
     )
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return null
-  }
+  // if (!isAuthenticated || user?.role !== "admin") {
+  //   return null
+  // }
 
   return <>{children}</>
 }
