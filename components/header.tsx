@@ -40,14 +40,14 @@ export function Header() {
     fetchUser();
   }, [])
 
-  useEffect(() => {
-    const userLoggedIn = localStorage.getItem('isLoggedIn');
-    if (userLoggedIn || userLoggedIn === 'true') {
-      setIsAuthenticated(true);
-    } else {
-      router.push('/login')
-    }
-  }, [])
+  // useEffect(() => {
+  //   const userLoggedIn = localStorage.getItem('isLoggedIn');
+  //   if (userLoggedIn || userLoggedIn === 'true') {
+  //     setIsAuthenticated(true);
+  //   } else {
+  //     router.push('/login')
+  //   }
+  // }, [])
 
 
   const handleLogout = async () => {

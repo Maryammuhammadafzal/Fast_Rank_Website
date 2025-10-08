@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+// import { createClient } from "@/lib/supabase/client"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ interface Product {
 
 export default function MarketplacePage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [priceRange, setPriceRange] = useState([0, 2000])
@@ -90,6 +90,90 @@ export default function MarketplacePage() {
   //     supabase.removeChannel(channel)
   //   }
   // }, [])
+
+  
+  useEffect(()=> {
+  const productsData = [
+  {
+    id: "p1",
+    name: "TechVerse Blog",
+    url: "https://www.techverseblog.com",
+    da: 58,
+    dr: 62,
+    monthly_traffic: "120K",
+    delivery_time: "2 days",
+    description: "A high-authority technology blog covering AI, gadgets, and web development trends.",
+    category: "Technology",
+    status: "active",
+    price: 149,
+    created_at: "2025-09-01T10:30:00Z",
+    updated_at: "2025-10-05T12:00:00Z"
+  },
+  {
+    id: "p2",
+    name: "HealthyBite",
+    url: "https://www.healthybite.co.uk",
+    da: 45,
+    dr: 48,
+    monthly_traffic: "85K",
+    delivery_time: "3 days",
+    description: "A health and wellness site focused on nutrition tips, fitness guides, and organic recipes.",
+    category: "Health",
+    status: "active",
+    price: 120,
+    created_at: "2025-08-22T09:00:00Z",
+    updated_at: "2025-09-15T14:20:00Z"
+  },
+  {
+    id: "p3",
+    name: "StyleVista",
+    url: "https://www.stylevista.com",
+    da: 52,
+    dr: 57,
+    monthly_traffic: "97K",
+    delivery_time: "1 day",
+    description: "A fashion and lifestyle magazine showcasing modern trends, designer interviews, and beauty advice.",
+    category: "Fashion",
+    status: "active",
+    price: 135,
+    created_at: "2025-09-10T08:00:00Z",
+    updated_at: "2025-09-25T11:15:00Z"
+  },
+  {
+    id: "p4",
+    name: "EcoTraveller",
+    url: "https://www.ecotraveller.net",
+    da: 61,
+    dr: 66,
+    monthly_traffic: "140K",
+    delivery_time: "4 days",
+    description: "A sustainable travel platform promoting eco-friendly destinations and responsible tourism.",
+    category: "Travel",
+    status: "active",
+    price: 160,
+    created_at: "2025-07-18T13:10:00Z",
+    updated_at: "2025-10-01T10:45:00Z"
+  },
+  {
+    id: "p5",
+    name: "CryptoInsights",
+    url: "https://www.cryptocurrencyinsights.io",
+    da: 68,
+    dr: 72,
+    monthly_traffic: "210K",
+    delivery_time: "2 days",
+    description: "A blockchain and crypto analysis platform delivering latest updates, project reviews, and market insights.",
+    category: "Finance",
+    status: "active",
+    price: 180,
+    created_at: "2025-08-05T09:45:00Z",
+    updated_at: "2025-09-30T16:30:00Z"
+  }
+]
+  setProducts(productsData)
+}, [])
+
+
 
   const categories = ["all", ...Array.from(new Set(products.map((product) => product.category)))]
 

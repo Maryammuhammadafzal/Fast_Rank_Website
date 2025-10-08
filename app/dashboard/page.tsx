@@ -58,7 +58,7 @@ const mockOrders = [
     title: "SEO-Optimized Article Writing Package",
     seller: "ContentMaster",
     price: 247,
-    status: "in-progress",
+    status: "processing",
     orderDate: "2024-01-20",
     deliveryDate: "2024-01-25",
     rating: null,
@@ -115,10 +115,10 @@ export default function DashboardPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
   const [user, setUser] = useState(null);
   const [mockStats, setMockStats] = useState({
-    totalOrders: 12,
-    activeOrders: 3,
-    completedOrders: 8,
-    totalSpent: 2847,
+    totalOrders: 0,
+    activeOrders: 0,
+    completedOrders: 0,
+    totalSpent: 0,
     avgRating: 4.8,
     savedAmount: 450,
   })
@@ -213,7 +213,7 @@ export default function DashboardPage() {
     switch (status) {
       case "completed":
         return "bg-accent/10 text-accent-foreground border-accent/20"
-      case "in-progress":
+      case "processing":
         return "bg-primary/10 text-primary border-primary/20"
       case "pending":
         return "bg-muted text-muted-foreground border-border"
@@ -230,7 +230,7 @@ export default function DashboardPage() {
     switch (status) {
       case "completed":
         return <CheckCircle className="h-4 w-4" />
-      case "in-progress":
+      case "processing":
         return <Clock className="h-4 w-4" />
       case "pending":
         return <Clock className="h-4 w-4" />
@@ -400,7 +400,7 @@ export default function DashboardPage() {
                               <span>•</span>
                               <span>${order.price}</span>
                             </div>
-                            {order.status === "in-progress" && (
+                            {order.status === "processing" && (
                               <div className="mt-3">
                                 <div className="flex items-center justify-between text-sm mb-1">
                                   <span>Progress</span>
@@ -472,15 +472,15 @@ export default function DashboardPage() {
                           <div className="space-y-3">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Member since</span>
-                              <span>January 2024</span>
+                              <span>{user?.user_registered.slice(0,11)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Account status</span>
-                              <Badge className="bg-accent/10 text-accent-foreground border-accent/20">Active</Badge>
+                              <Badge className="bg-accent/10 text-accent-foreground capitalize border-accent/20">{user?.user_status}</Badge>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Verification status</span>
-                              <Badge className="bg-primary/10 text-primary border-primary/20">Verified</Badge>
+                              <Badge className="bg-primary/10 text-primary border-primary/20">{user?.user_status === 'active' ? 'Verified' : 'Not Verified'}</Badge>
                             </div>
                           </div>
                         </div>
@@ -551,7 +551,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
 
-                          {order.status === "in-progress" && (
+                          {order.status === "processing" && (
                             <div className="mb-4">
                               <div className="flex items-center justify-between text-sm mb-2">
                                 <span className="font-medium">Progress</span>
