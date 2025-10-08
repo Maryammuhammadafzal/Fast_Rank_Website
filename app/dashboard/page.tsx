@@ -114,6 +114,14 @@ export default function DashboardPage() {
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
   const [user, setUser] = useState(null);
+  const [mockStats, setMockStats] = useState({
+    totalOrders: 12,
+    activeOrders: 3,
+    completedOrders: 8,
+    totalSpent: 2847,
+    avgRating: 4.8,
+    savedAmount: 450,
+  })
 
   const router = useRouter();
 
@@ -163,48 +171,39 @@ export default function DashboardPage() {
           });
           const text = await res.text();
           const data = JSON.parse(text);
-          // console.log("Orders Data", data);
+          // Filter data
           const allOrders = data.data;
           const orders = allOrders && allOrders.filter((order: any) => order.user_id === user_id);
-          const balance = Math.abs(user.balance)
-          // console.log("Service orders",balance);
 
+          // Store data
+          // const balance = Math.abs(user?.balance)
           const totalOrders = orders ? orders.length : 0
           const activeOrders = orders ? orders.filter(
             (order: any) => order.status === "pending" || order.status === "processing",
           ).length : 0
-
+          const completedOrders = orders ? orders.filter(
+            (order: any) => order.status === "completed" || order.status === "complete",
+          ).length : 0
           const totalSpent = orders ? orders.reduce(
             (sum: number, order: any) => sum + (parseInt(order.price) || 0),
             0,
           ) : 0
 
-          const mockStats = {
-            totalOrders: 12,
-            activeOrders: 3,
-            completedOrders: 8,
-            totalSpent: 2847,
+          setMockStats({
+            totalOrders: orders.length,
+            activeOrders: activeOrders,
+            completedOrders: completedOrders,
+            totalSpent: totalSpent,
             avgRating: 4.8,
             savedAmount: 450,
-          }
-          setStats({
-            totalOrders,
-            activeOrders,
-            totalSpent,
-            accountBalance: balance,
           })
-          setIsLoading(false);
-          // setOrders(filteredOrders);
-          // const serviceOrders = JSON.parse(localStorage.getItem("userServiceOrders") || "[]")
-          // const balance = (Math.floor(user?.balance)).toLocaleString().slice(0,1) === "-" ? (Math.floor(user.balance)).toLocaleString().slice(1,user.balance.toString().length) : (Math.floor(user.balance)).toLocaleString();
+         
         } catch (error) {
           console.error("Error loading admin orders:", error)
         }
       }
 
       loadOrders()
-
-
     }
   }, [user])
 
