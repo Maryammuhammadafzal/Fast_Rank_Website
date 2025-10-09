@@ -43,7 +43,7 @@ const mockUsers = [
     totalSpent: 1247,
     totalOrders: 8,
     lastLogin: "2024-01-25",
-    avatar: "/placeholder.svg",
+    profile_image: "/placeholder.svg",
   },
   {
     id: 2,
@@ -55,7 +55,7 @@ const mockUsers = [
     totalSpent: 0,
     totalOrders: 0,
     lastLogin: "2024-01-24",
-    avatar: "/placeholder.svg",
+    profile_image: "/placeholder.svg",
   },
   {
     id: 3,
@@ -67,7 +67,7 @@ const mockUsers = [
     totalSpent: 450,
     totalOrders: 3,
     lastLogin: "2024-01-22",
-    avatar: "/placeholder.svg",
+    profile_image: "/placeholder.svg",
   },
   {
     id: 4,
@@ -79,7 +79,7 @@ const mockUsers = [
     totalSpent: 0,
     totalOrders: 0,
     lastLogin: "2024-01-25",
-    avatar: "/placeholder.svg",
+    profile_image: "/placeholder.svg",
   },
   {
     id: 5,
@@ -91,21 +91,21 @@ const mockUsers = [
     totalSpent: 890,
     totalOrders: 5,
     lastLogin: "2024-01-18",
-    avatar: "/placeholder.svg",
+    profile_image: "/placeholder.svg",
   },
 ]
 
 interface Users {
   id: number,
-  name: string,
-  email: string,
+  user_nicename: string,
+  user_email: string,
   role: string,
-  status: string,
-  joinDate: string,
-  totalSpent: number,
-  totalOrders: number,
+  user_status: string,
+  user_registered: string,
+  // totalSpent: number,
+  user_order: number,
   lastLogin: string,
-  avatar: string,
+  profile_image: string,
 }
 
 export default function UserManagement() {
@@ -120,21 +120,21 @@ export default function UserManagement() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
   // Get All Users
-  useEffect(() => {
-    const fetchUser = async () => {
-      const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
-        method: "GET"
-      });
+  const fetchUser = async () => {
+    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+      method: "GET"
+    });
 
-      const text = await res.text();
-      const userData = JSON.parse(text);
+    const text = await res.text();
+    const userData = JSON.parse(text);
 
-      if (userData) {
-        setUsers(userData)
-      } else {
-        setUsers(null)
-      }
+    if (userData) {
+      setUsers(userData)
+    } else {
+      setUsers(null)
     }
+  }
+  useEffect(() => {
     // Load user data
     fetchUser();
   }, []);
@@ -142,10 +142,10 @@ export default function UserManagement() {
   // Filter users based on search and filters
   const filteredUsers = users?.filter((user: any) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.user_nicename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.user_email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === "all" || user.role === filterRole
-    const matchesStatus = filterStatus === "all" || user.status === filterStatus
+    const matchesStatus = filterStatus === "all" || user.user_status === filterStatus
     return matchesSearch && matchesRole && matchesStatus
   })
 
@@ -187,18 +187,40 @@ export default function UserManagement() {
     if (users) {
       const newUser = {
         id: Math.max(...users.map((u) => u.id)) + 1,
-        name: formData.get("name") as string,
-        email: formData.get("email") as string,
+        user_nicename: formData.get("name") as string,
+        user_email: formData.get("email") as string,
+        user_pass: formData.get("email") as string,
         role: formData.get("role") as string,
-        status: "active",
-        joinDate: new Date().toISOString().split("T")[0],
-        totalSpent: 0,
-        totalOrders: 0,
+        user_status: "active",
+        user_registered: new Date().toISOString().split("T")[0],
+        // totalSpent: 0,
+        user_order: 0,
         lastLogin: "Never",
-        avatar: "/placeholder.svg",
+        profile_image: "/placeholder.svg",
       }
-      setUsers([...users, newUser])
-      setIsAddDialogOpen(false)
+
+      const addUser = async () => {
+        const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newUser),
+        });
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+
+        if (data) {
+          toast.success('User Added Successfully');
+          fetchUser();
+          setIsAddDialogOpen(false)
+        } else {
+          toast.error("User Not Added");
+        }
+      }
+      // Add New user
+      addUser()
     }
 
   }
@@ -231,7 +253,7 @@ export default function UserManagement() {
       <div className="flex">
         <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
@@ -329,7 +351,7 @@ export default function UserManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Active Users</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {users?.filter((u) => u.status === "active").length}
+                        {users?.filter((u) => u.user_status === "active").length}
                       </p>
                     </div>
                     <span className="text-2xl">✅</span>
@@ -434,15 +456,15 @@ export default function UserManagement() {
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
                               <span className="text-sm font-medium text-gray-700">
-                                {user.name
+                                {user?.user_nicename
                                   .split(" ")
                                   .map((n) => n[0])
                                   .join("")}
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{user.name}</p>
-                              <p className="text-sm text-gray-600">{user.email}</p>
+                              <p className="font-medium text-gray-900">{user?.user_nicename}</p>
+                              <p className="text-sm text-gray-600">{user.user_email}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -450,11 +472,12 @@ export default function UserManagement() {
                           <Badge className={getRoleColor(user.role)}>{user.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
+                          <Badge className={getStatusColor(user.user_status)}>{user.user_status}</Badge>
                         </TableCell>
-                        <TableCell className="text-gray-700">{new Date(user.joinDate).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-gray-700">${user.totalSpent.toLocaleString()}</TableCell>
-                        <TableCell className="text-gray-700">{user.totalOrders}</TableCell>
+                        <TableCell className="text-gray-700">{new Date(user.user_registered).toLocaleDateString()}</TableCell>
+                        {/* <TableCell className="text-gray-700">${user?.totalSpent.toString()}</TableCell> */}
+                        <TableCell className="text-gray-700">$500</TableCell>
+                        <TableCell className="text-gray-700">{user?.user_order}</TableCell>
                         <TableCell className="text-gray-700">{user.lastLogin}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -490,7 +513,7 @@ export default function UserManagement() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-gray-900">Delete User</AlertDialogTitle>
                                   <AlertDialogDescription className="text-gray-600">
-                                    Are you sure you want to delete {user.name}? This action cannot be undone.
+                                    Are you sure you want to delete {user?.user_nicename}? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
