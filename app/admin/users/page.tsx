@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 // Mock user data
 const mockUsers = [
@@ -94,9 +95,22 @@ const mockUsers = [
   },
 ]
 
+interface Users {
+  id: number,
+  name: string,
+  email: string,
+  role: string,
+  status: string,
+  joinDate: string,
+  totalSpent: number,
+  totalOrders: number,
+  lastLogin: string,
+  avatar: string,
+}
+
 export default function UserManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState<Users[] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -105,8 +119,28 @@ export default function UserManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
+  // Get All Users
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+        method: "GET"
+      });
+
+      const text = await res.text();
+      const userData = JSON.parse(text);
+
+      if (userData) {
+        setUsers(userData)
+      } else {
+        setUsers(null)
+      }
+    }
+    // Load user data
+    fetchUser();
+  }, []);
+
   // Filter users based on search and filters
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users?.filter((user: any) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -142,43 +176,52 @@ export default function UserManagement() {
   }
 
   const handleDeleteUser = (userId: number) => {
-    setUsers(users.filter((user) => user.id !== userId))
+    if (users) {
+      setUsers(users.filter((user) => user.id !== userId))
+    } else {
+      toast.error("User Not Found")
+    }
   }
 
   const handleAddUser = (formData: FormData) => {
-    const newUser = {
-      id: Math.max(...users.map((u) => u.id)) + 1,
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      role: formData.get("role") as string,
-      status: "active",
-      joinDate: new Date().toISOString().split("T")[0],
-      totalSpent: 0,
-      totalOrders: 0,
-      lastLogin: "Never",
-      avatar: "/placeholder.svg",
+    if (users) {
+      const newUser = {
+        id: Math.max(...users.map((u) => u.id)) + 1,
+        name: formData.get("name") as string,
+        email: formData.get("email") as string,
+        role: formData.get("role") as string,
+        status: "active",
+        joinDate: new Date().toISOString().split("T")[0],
+        totalSpent: 0,
+        totalOrders: 0,
+        lastLogin: "Never",
+        avatar: "/placeholder.svg",
+      }
+      setUsers([...users, newUser])
+      setIsAddDialogOpen(false)
     }
-    setUsers([...users, newUser])
-    setIsAddDialogOpen(false)
+
   }
 
   const handleEditUser = (formData: FormData) => {
     if (!selectedUser) return
+    if (users) {
 
-    const updatedUsers = users.map((user) =>
-      user.id === selectedUser.id
-        ? {
+      const updatedUsers = users.map((user) =>
+        user.id === selectedUser.id
+          ? {
             ...user,
             name: formData.get("name") as string,
             email: formData.get("email") as string,
             role: formData.get("role") as string,
             status: formData.get("status") as string,
           }
-        : user,
-    )
-    setUsers(updatedUsers)
-    setIsEditDialogOpen(false)
-    setSelectedUser(null)
+          : user,
+      )
+      setUsers(updatedUsers)
+      setIsEditDialogOpen(false)
+      setSelectedUser(null)
+    }
   }
 
   return (
@@ -274,7 +317,7 @@ export default function UserManagement() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Users</p>
-                      <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                      <p className="text-2xl font-bold text-gray-900">{users?.length}</p>
                     </div>
                     <span className="text-2xl">👥</span>
                   </div>
@@ -286,7 +329,7 @@ export default function UserManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Active Users</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {users.filter((u) => u.status === "active").length}
+                        {users?.filter((u) => u.status === "active").length}
                       </p>
                     </div>
                     <span className="text-2xl">✅</span>
@@ -299,7 +342,7 @@ export default function UserManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Customers</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {users.filter((u) => u.role === "customer").length}
+                        {users?.filter((u) => u.role === "customer").length}
                       </p>
                     </div>
                     <span className="text-2xl">🛒</span>
@@ -312,7 +355,7 @@ export default function UserManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Sellers</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {users.filter((u) => u.role === "seller").length}
+                        {users?.filter((u) => u.role === "seller").length}
                       </p>
                     </div>
                     <span className="text-2xl">💼</span>
@@ -367,7 +410,7 @@ export default function UserManagement() {
             {/* Users Table */}
             <Card className="bg-white border-gray-200">
               <CardHeader>
-                <CardTitle className="text-gray-900">Users ({filteredUsers.length})</CardTitle>
+                <CardTitle className="text-gray-900">Users ({filteredUsers?.length})</CardTitle>
                 <CardDescription className="text-gray-600">Manage all registered users</CardDescription>
               </CardHeader>
               <CardContent>
@@ -385,7 +428,7 @@ export default function UserManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
+                    {filteredUsers?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
