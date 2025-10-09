@@ -10,21 +10,51 @@ interface AdminAuthGuardProps {
   children: React.ReactNode
 }
 
+interface User {
+  name: string,
+  email: string,
+  role: string
+}
+
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user , setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
   // const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
-   useEffect(() => {
-      const adminLoggedIn = localStorage.getItem('admin-authenticated');
-      if (adminLoggedIn || adminLoggedIn === 'true') {
-        setIsAuthenticated(true)
-      }
+  const fetchUser = async () => {
+    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+      method: "GET"
+    });
+    console.log(res);
 
-      
-    }, []);
+    const text = await res.text();
+    const userData = JSON.parse(text);
+
+    if (userData) {
+      const adminEmail = localStorage.getItem('adminEmail')
+      const getUser = userData.find((item: any) => item.user_email === adminEmail);
+
+      setUser(getUser)
+      setIsLoading(false)
+    } else {
+      setUser(null)
+      setIsLoading(false)
+    }
+  }
+
+
+  useEffect(() => {
+    const adminLoggedIn = localStorage.getItem('admin-authenticated');
+    if (adminLoggedIn || adminLoggedIn === 'true') {
+      setIsAuthenticated(true)
+    }
+
+    // Load user data
+    fetchUser();
+
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
@@ -33,10 +63,10 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
         return
       }
 
-  //     if (user?.role !== "admin") {
-  //       router.push("/dashboard")
-  //       return
-  //     }
+      if (user?.role !== "admin") {
+        router.push("/dashboard")
+        return
+      }
     }
   }, [])
 
