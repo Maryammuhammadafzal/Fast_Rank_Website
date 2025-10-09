@@ -12,9 +12,19 @@ interface AdminAuthGuardProps {
 
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user , setUser] = useState(null)
   // const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+
+   useEffect(() => {
+      const adminLoggedIn = localStorage.getItem('admin-authenticated');
+      if (adminLoggedIn || adminLoggedIn === 'true') {
+        setIsAuthenticated(true)
+      }
+
+      
+    }, []);
 
   useEffect(() => {
     if (!isLoading) {
