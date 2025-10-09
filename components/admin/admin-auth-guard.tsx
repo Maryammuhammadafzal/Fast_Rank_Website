@@ -17,13 +17,14 @@ interface User {
 }
 
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null)
   // const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   const fetchUser = async () => {
+    setIsLoading(true)
     const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
       method: "GET"
     });

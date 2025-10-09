@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
         if(data) {
           toast.success('Login Successfully')
           localStorage.setItem("role", "admin")
-          localStorage.setItem("is-Authenticated", "true")
+          localStorage.setItem("admin-authenticated", "true")
           localStorage.setItem("adminEmail", email)
   
           // Redirect to admin dashboard
