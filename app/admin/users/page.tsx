@@ -42,7 +42,7 @@ const mockUsers = [
     joinDate: "2024-01-15",
     totalSpent: 1247,
     totalOrders: 8,
-    lastLogin: "2024-01-25",
+    last_login: "2024-01-25",
     profile_image: "/placeholder.svg",
   },
   {
@@ -54,7 +54,7 @@ const mockUsers = [
     joinDate: "2024-01-10",
     totalSpent: 0,
     totalOrders: 0,
-    lastLogin: "2024-01-24",
+    last_login: "2024-01-24",
     profile_image: "/placeholder.svg",
   },
   {
@@ -66,7 +66,7 @@ const mockUsers = [
     joinDate: "2024-01-20",
     totalSpent: 450,
     totalOrders: 3,
-    lastLogin: "2024-01-22",
+    last_login: "2024-01-22",
     profile_image: "/placeholder.svg",
   },
   {
@@ -78,7 +78,7 @@ const mockUsers = [
     joinDate: "2024-01-05",
     totalSpent: 0,
     totalOrders: 0,
-    lastLogin: "2024-01-25",
+    last_login: "2024-01-25",
     profile_image: "/placeholder.svg",
   },
   {
@@ -90,7 +90,7 @@ const mockUsers = [
     joinDate: "2024-01-12",
     totalSpent: 890,
     totalOrders: 5,
-    lastLogin: "2024-01-18",
+    last_login: "2024-01-18",
     profile_image: "/placeholder.svg",
   },
 ]
@@ -102,9 +102,9 @@ interface Users {
   role: string,
   user_status: string,
   user_registered: string,
-  // totalSpent: number,
+  user_spent: number,
   user_order: number,
-  lastLogin: string,
+  last_login: string,
   profile_image: string,
 }
 
@@ -175,13 +175,43 @@ export default function UserManagement() {
     }
   }
 
-  const handleDeleteUser = (userId: number) => {
-    if (users) {
-      setUsers(users.filter((user) => user.id !== userId))
-    } else {
-      toast.error("User Not Found")
-    }
+ const handleDeleteUser = (userId: number) => {
+  if (users) {
+    const deleteUser = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/fast-rank-backend/user-delete.php", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: userId }),
+        });
+        console.log("Response:", res);
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+        console.log("Parsed Data:", data);
+
+        if (data.status === "success") {
+          fetchUser(); // Re-fetch the user list
+          toast.success('User Deleted Successfully');
+          // Optionally reset edit dialog or selected user if needed
+          // setIsEditDialogOpen(false);
+          // setSelectedUser(null);
+        } else {
+          toast.error(data.message || "User Not Deleted");
+        }
+      } catch (err) {
+        console.log("Error:", err);
+        toast.error("An error occurred while deleting the user");
+      }
+    };
+    // Delete user
+    deleteUser();
+  } else {
+    toast.error("User Not Found");
   }
+};
 
   const handleAddUser = (formData: FormData) => {
     if (users) {
@@ -193,14 +223,11 @@ export default function UserManagement() {
         role: formData.get("role") as string,
         user_status: "active",
         user_registered: new Date().toISOString().split("T")[0],
-        // totalSpent: 0,
+        user_spentt: 0,
         user_order: 0,
-        // lastLogin: "Never",
-        // profile_image: "/placeholder.svg",
+        last_login: new Date().toISOString().split("T")[0],
+        profile_image: "/placeholder.svg",
       }
-
-      console.log(newUser);
-
 
       const addUser = async () => {
         try {
@@ -214,13 +241,15 @@ export default function UserManagement() {
 
           const text = await res.text();
           const data = JSON.parse(text);
+          console.log(data);
+          
 
-          if (data) {
+          if (data.status === "success") {
             fetchUser();
             toast.success('User Added Successfully');
             setIsAddDialogOpen(false)
           } else {
-            toast.error("User Not Added");
+            toast.error(`${data.message}` || 'User Not Added');
           }
         }
         catch (err) {
@@ -238,47 +267,64 @@ export default function UserManagement() {
     if (!selectedUser) return
     if (users) {
 
-      const updatedUsers = users.map((user) =>
-        user.id === selectedUser.id
-          ? {
-            ...user,
-            user_name: formData.get("name") as string,
-            user_email: formData.get("email") as string,
-            role: formData.get("role") as string,
-            user_status: formData.get("status") as string,
-          }
-          : user,
-      )
-
-      const updateUser = async () => {
-        try {
-          const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedUsers),
-          });
-
-          const text = await res.text();
-          const data = JSON.parse(text);
-
-          if (data) {
-            fetchUser();
-            toast.success('User Updated Successfully');
-            setIsEditDialogOpen(false)
-            setSelectedUser(null)
-          } else {
-            toast.error("User Not Updated");
-          }
-        }
-        catch (err) {
-          console.log(err);
-
-        }
+      // const updatedUsers = users.map((user) =>
+      //   user.id === selectedUser.id
+      //     ? {
+      //       // ...user,
+      //       id: user.id,
+      //       user_name: formData.get("name") as string,
+      //       user_email: formData.get("email") as string,
+      //       role: formData.get("role") as string,
+      //       user_status: formData.get("status") as string,
+      //     }
+      //     : user,
+      // )
+      const updatedUsers = {
+        id: selectedUser.id,
+        user_nicename: formData.get("name") as string,
+        user_email: formData.get("email") as string,
+        role: formData.get("role") as string,
+        user_status: formData.get("status") as string,
       }
-      // Add New user
-      updateUser()
+      console.log(updatedUsers);
+      if (updatedUsers) {
+
+        const updateUser = async () => {
+          try {
+            console.log('chala');
+
+            const res = await fetch("http://localhost:8080/fast-rank-backend/user-update.php", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedUsers),
+            });
+            console.log(res);
+
+
+            const text = await res.text();
+
+            const data = JSON.parse(text);
+            console.log(data);
+
+            if (data) {
+              fetchUser();
+              toast.success('User Updated Successfully');
+              setIsEditDialogOpen(false)
+              setSelectedUser(null)
+            } else {
+              toast.error(data.message || "User Not Updated");
+            }
+          }
+          catch (err) {
+            console.log(err);
+
+          }
+        }
+        // Add New user
+        updateUser()
+      }
 
     }
   }
@@ -512,10 +558,9 @@ export default function UserManagement() {
                           <Badge className={getStatusColor(user.user_status)}>{user.user_status}</Badge>
                         </TableCell>
                         <TableCell className="text-gray-700">{new Date(user.user_registered).toLocaleDateString()}</TableCell>
-                        {/* <TableCell className="text-gray-700">${user?.totalSpent.toString()}</TableCell> */}
-                        <TableCell className="text-gray-700">$500</TableCell>
+                        <TableCell className="text-gray-700">${user?.user_spent?.toString()}</TableCell>
                         <TableCell className="text-gray-700">{user?.user_order}</TableCell>
-                        <TableCell className="text-gray-700">{user.lastLogin}</TableCell>
+                        <TableCell className="text-gray-700">{user.last_login}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Button
@@ -618,8 +663,7 @@ export default function UserManagement() {
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Total Spent</Label>
                           <p className="text-sm font-semibold text-gray-900">
-                            $500
-                            {/* ${selectedUser.totalSpent.toLocaleString()} */}
+                            ${selectedUser.user_spent.toLocaleString()}
                           </p>
                         </div>
                         <div>
