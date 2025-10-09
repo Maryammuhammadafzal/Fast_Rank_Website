@@ -44,8 +44,6 @@ export default function UserLoginPage() {
         },
         body: JSON.stringify(loginUser),
       });
-
-      console.log(res);
       
       const data = await res.json();
       if (res.ok) {

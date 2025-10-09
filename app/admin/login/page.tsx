@@ -29,19 +29,34 @@ export default function AdminLoginPage() {
     // try {
     const result = {
       email: email,
-      password: password
+      password: password,
+      role: 'admin'
     }
 
     if (email && password) {
       if (email === "admin@marketplace.com" && password === "admin123") {
         // Save admin login state
-        toast.success('Login Successfully')
-        localStorage.setItem("role", "admin")
-        localStorage.setItem("is-Authenticated", "true")
-        localStorage.setItem("adminEmail", email)
 
-        // Redirect to admin dashboard
-        router.push("/admin")
+        const res = await fetch("http://localhost:8080/fast-rank-backend/user-login.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(result),
+        });
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+
+        if(data) {
+          toast.success('Login Successfully')
+          localStorage.setItem("role", "admin")
+          localStorage.setItem("is-Authenticated", "true")
+          localStorage.setItem("adminEmail", email)
+  
+          // Redirect to admin dashboard
+          router.push("/admin")
+        }
       } else {
         setError("Invalid credentials. Please check your username and password.")
         toast.error(`Invalid credentials. Please check your username and password.`);
