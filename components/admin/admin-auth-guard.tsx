@@ -25,17 +25,18 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   const router = useRouter()
 
   useEffect(() => {
+
     const adminLoggedIn = localStorage.getItem('admin-authenticated');
     const role = localStorage.getItem('role');
-    if (adminLoggedIn || adminLoggedIn === 'true') {
+
+    if (adminLoggedIn === 'true' && role === 'admin') {
       setIsAuthenticated(true)
-    }
-    if (role) {
       setRole(role)
+    } else {
+      // Load user data
+      fetchUser();
     }
 
-    // Load user data
-    fetchUser();
 
   }, []);
 
@@ -63,19 +64,19 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
 
 
 
-  useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push("/admin/login")
-        return
-      }
+  // useEffect(() => {
+  //   if (!isLoading) {
+  //     if (!isAuthenticated) {
+  //       router.push("/admin/login")
+  //       return
+  //     }
 
-      if (role !== 'admin' || user?.role !== "admin") {
-        router.push("/dashboard")
-        return
-      }
-    }
-  }, [])
+  //     if (role !== 'admin' || user?.role !== "admin") {
+  //       router.push("/dashboard")
+  //       return
+  //     }
+  //   }
+  // }, [])
 
   if (isLoading) {
     return (

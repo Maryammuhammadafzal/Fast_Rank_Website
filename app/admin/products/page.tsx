@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+// import { createClient } from "@/lib/supabase/client"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +31,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
+// import { useToast } from "@/hooks/use-toast"
 
 interface Product {
   id: string
@@ -52,7 +53,7 @@ interface Product {
 export default function ProductsManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -60,34 +61,27 @@ export default function ProductsManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const { toast } = useToast()
+  // const { toast } = useToast()
 
-  const supabase = createClient()
+  // const supabase = createClient()
 
   const fetchProducts = async () => {
     try {
-      console.log("[v0] Starting to fetch products...")
       setLoading(true)
-
-      console.log("[v0] Supabase client created, attempting to fetch from products table...")
-      const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
-
-      console.log("[v0] Supabase response:", { data, error })
-
-      if (error) {
-        console.log("[v0] Supabase error details:", error)
-        throw error
+      const res = await fetch('http://localhost:8080/fast-rank-backend/websites.php', {
+        method: 'GET',
+        // headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const sortedWebsites = data?.data.sort((a: any, b: any) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        setProducts(sortedWebsites || [])
       }
-
-      console.log("[v0] Successfully fetched products:", data?.length || 0)
-      setProducts(data || [])
     } catch (error) {
-      console.error("[v0] Error fetching products:", error)
-      toast({
-        title: "Database Error",
-        description: "The products table doesn't exist yet. Please run the database setup scripts first.",
-        variant: "destructive",
-      })
+      console.error("fetching products:", error)
+      toast.error("The products table doesn't exist yet. Please run the database setup scripts first.")
     } finally {
       setLoading(false)
     }
@@ -137,22 +131,25 @@ export default function ProductsManagement() {
 
   const handleDeleteProduct = async (productId: string) => {
     try {
-      const { error } = await supabase.from("products").delete().eq("id", productId)
-
-      if (error) throw error
-
-      setProducts(products.filter((product) => product.id !== productId))
-      toast({
-        title: "Success",
-        description: "Product deleted successfully.",
+      const res = await fetch('http://localhost:8080/fast-rank-backend/websites-delete.php', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: productId
+        }),
       })
+      const text = await res.json();
+      const data = JSON.parse(text);
+
+      if (data.status === 'success') {
+        fetchProducts();
+        toast.success("Product deleted successfully.")
+      } else {
+        toast.error("Error deleting product")
+      }
     } catch (error) {
       console.error("Error deleting product:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete product. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Error deleting product: ${error}")
     }
   }
 
@@ -163,33 +160,38 @@ export default function ProductsManagement() {
         url: formData.get("url") as string,
         da: Number.parseInt(formData.get("da") as string),
         dr: Number.parseInt(formData.get("dr") as string),
-        delivery_time: formData.get("deliveryTime") as string,
-        monthly_traffic: formData.get("monthlyTraffic") as string,
+        deliverye: formData.get("deliveryTime") as string,
+        traffic: formData.get("monthlyTraffic") as string,
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         status: "active",
         price: Number.parseInt(formData.get("price") as string),
       }
 
-      const { data, error } = await supabase.from("products").insert([productData]).select()
+      const res = await fetch("http://localhost:8080/fast-rank-backend/websites-add.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
 
-      if (error) throw error
+      const text = await res.text();
+      const data = JSON.parse(text);
 
-      if (data && data[0]) {
-        setProducts([data[0], ...products])
-        toast({
-          title: "Success",
-          description: "Product added successfully.",
-        })
+      if (data.status === "success") {
+        fetchProducts();
+        toast.success('Product Added Successfully');
+        setIsAddDialogOpen(false)
+
+      } else {
+        toast.error('Product not Added')
+        setIsAddDialogOpen(false)
       }
-      setIsAddDialogOpen(false)
+
     } catch (error) {
       console.error("Error adding product:", error)
-      toast({
-        title: "Error",
-        description: "Failed to add product. Please try again.",
-        variant: "destructive",
-      })
+      toast.error('Failed to add product')
     }
   }
 
@@ -202,35 +204,36 @@ export default function ProductsManagement() {
         url: formData.get("url") as string,
         da: Number.parseInt(formData.get("da") as string),
         dr: Number.parseInt(formData.get("dr") as string),
-        delivery_time: formData.get("deliveryTime") as string,
-        monthly_traffic: formData.get("monthlyTraffic") as string,
+        delivery: formData.get("deliveryTime") as string,
+        traffic: formData.get("monthlyTraffic") as string,
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         status: formData.get("status") as string,
         price: Number.parseInt(formData.get("price") as string),
       }
 
-      const { data, error } = await supabase.from("products").update(productData).eq("id", selectedProduct.id).select()
+      const res = await fetch("http://localhost:8080/fast-rank-backend/websites-update.php", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
 
-      if (error) throw error
-
-      if (data && data[0]) {
-        setProducts(products.map((product) => (product.id === selectedProduct.id ? data[0] : product)))
-        toast({
-          title: "Success",
-          description: "Product updated successfully.",
-        })
+      if (data.status === "success") {
+        fetchProducts()
+        toast("Product updated successfully.")
+        setIsEditDialogOpen(false)
+        setSelectedProduct(null)
+      } else {
+        toast.error(`Error updating product`)
       }
 
-      setIsEditDialogOpen(false)
-      setSelectedProduct(null)
     } catch (error) {
       console.error("Error updating product:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update product. Please try again.",
-        variant: "destructive",
-      })
+      toast("Failed to update product. Please try again.")
     }
   }
 
@@ -251,7 +254,7 @@ export default function ProductsManagement() {
         <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex">
           <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-          <main className="flex-1 lg:ml-64 p-6">
+          <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-center h-64">
                 <div className="text-lg text-gray-600">Loading products...</div>
@@ -270,7 +273,7 @@ export default function ProductsManagement() {
       <div className="flex">
         <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
