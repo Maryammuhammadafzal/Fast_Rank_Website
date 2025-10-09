@@ -186,8 +186,8 @@ export default function UserManagement() {
   const handleAddUser = (formData: FormData) => {
     if (users) {
       const newUser = {
-        id: Math.max(...users.map((u) => u.id)) + 1,
-        user_nicename: formData.get("name") as string,
+        // id: Math.max(...users.map((u) => u.id)) + 1,
+        user_name: formData.get("name") as string,
         user_email: formData.get("email") as string,
         user_pass: formData.get("email") as string,
         role: formData.get("role") as string,
@@ -195,28 +195,37 @@ export default function UserManagement() {
         user_registered: new Date().toISOString().split("T")[0],
         // totalSpent: 0,
         user_order: 0,
-        lastLogin: "Never",
-        profile_image: "/placeholder.svg",
+        // lastLogin: "Never",
+        // profile_image: "/placeholder.svg",
       }
 
+      console.log(newUser);
+      
+
       const addUser = async () => {
-        const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newUser),
-        });
-
-        const text = await res.text();
-        const data = JSON.parse(text);
-
-        if (data) {
-          toast.success('User Added Successfully');
-          fetchUser();
-          setIsAddDialogOpen(false)
-        } else {
-          toast.error("User Not Added");
+        try {
+          const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newUser),
+          });
+          
+          const text = await res.text();
+          const data = JSON.parse(text);
+  
+          if (data) {
+            fetchUser();
+            toast.success('User Added Successfully');
+            setIsAddDialogOpen(false)
+          } else {
+            toast.error("User Not Added");
+          }
+        }
+        catch (err) {
+          console.log(err);
+          
         }
       }
       // Add New user

@@ -5,6 +5,7 @@ import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 // Mock data for admin dashboard
 const adminStats = {
@@ -35,7 +36,7 @@ export default function AdminPage() {
 
       <div className="flex">
         <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-{/* lg:ml-46 */}
+        {/* lg:ml-46 */}
         <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             {/* Page Header */}
@@ -123,10 +124,13 @@ export default function AdminPage() {
                   <CardDescription>Frequently used admin actions</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button className="w-full justify-start h-12 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <span className="mr-3">👥</span>
-                    Manage Users
-                  </Button>
+
+                  <Link href='/admin/users'>
+                    <Button className="w-full justify-start h-12 bg-primary text-primary-foreground hover:bg-primary/90">
+                      <span className="mr-3">👥</span>
+                      Manage Users
+                    </Button>
+                  </Link>
                   <Button variant="outline" className="w-full justify-start h-12 bg-transparent">
                     <span className="mr-3">🌐</span>
                     Add New Website

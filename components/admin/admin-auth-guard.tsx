@@ -19,9 +19,25 @@ interface User {
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [role, setRole] = useState('')
   const [user, setUser] = useState<User | null>(null)
   // const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    const adminLoggedIn = localStorage.getItem('admin-authenticated');
+    const role = localStorage.getItem('role');
+    if (adminLoggedIn || adminLoggedIn === 'true') {
+      setIsAuthenticated(true)
+    }
+    if (role) {
+      setRole(role)
+    }
+
+    // Load user data
+    fetchUser();
+
+  }, []);
 
   const fetchUser = async () => {
     setIsLoading(true)
@@ -46,16 +62,6 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   }
 
 
-  useEffect(() => {
-    const adminLoggedIn = localStorage.getItem('admin-authenticated');
-    if (adminLoggedIn || adminLoggedIn === 'true') {
-      setIsAuthenticated(true)
-    }
-
-    // Load user data
-    fetchUser();
-
-  }, []);
 
   useEffect(() => {
     if (!isLoading) {
@@ -64,7 +70,7 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
         return
       }
 
-      if (user?.role !== "admin") {
+      if (role !== 'admin' || user?.role !== "admin") {
         router.push("/dashboard")
         return
       }

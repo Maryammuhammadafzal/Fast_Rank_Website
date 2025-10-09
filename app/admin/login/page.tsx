@@ -48,19 +48,24 @@ export default function AdminLoginPage() {
         const text = await res.text();
         const data = JSON.parse(text);
 
-        if(data) {
+        if (data) {
           toast.success('Login Successfully')
           localStorage.setItem("role", "admin")
           localStorage.setItem("admin-authenticated", "true")
           localStorage.setItem("adminEmail", email)
-  
+
           // Redirect to admin dashboard
           router.push("/admin")
         }
       } else {
+        setIsLoading(false)
         setError("Invalid credentials. Please check your username and password.")
         toast.error(`Invalid credentials. Please check your username and password.`);
       }
+    } else {
+      setIsLoading(false)
+      setError("Both Feilds are required.")
+      toast.error(`Both Feilds are required.`);
     }
     //   if (result.success) {
     //     const authService = (await import("@/lib/auth")).AuthService.getInstance()
