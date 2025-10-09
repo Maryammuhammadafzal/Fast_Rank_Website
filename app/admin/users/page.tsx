@@ -200,7 +200,7 @@ export default function UserManagement() {
       }
 
       console.log(newUser);
-      
+
 
       const addUser = async () => {
         try {
@@ -211,10 +211,10 @@ export default function UserManagement() {
             },
             body: JSON.stringify(newUser),
           });
-          
+
           const text = await res.text();
           const data = JSON.parse(text);
-  
+
           if (data) {
             fetchUser();
             toast.success('User Added Successfully');
@@ -225,7 +225,7 @@ export default function UserManagement() {
         }
         catch (err) {
           console.log(err);
-          
+
         }
       }
       // Add New user
@@ -242,16 +242,44 @@ export default function UserManagement() {
         user.id === selectedUser.id
           ? {
             ...user,
-            name: formData.get("name") as string,
-            email: formData.get("email") as string,
+            user_name: formData.get("name") as string,
+            user_email: formData.get("email") as string,
             role: formData.get("role") as string,
-            status: formData.get("status") as string,
+            user_status: formData.get("status") as string,
           }
           : user,
       )
-      setUsers(updatedUsers)
-      setIsEditDialogOpen(false)
-      setSelectedUser(null)
+
+      const updateUser = async () => {
+        try {
+          const res = await fetch("http://localhost:8080/fast-rank-backend/user-registered.php", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedUsers),
+          });
+
+          const text = await res.text();
+          const data = JSON.parse(text);
+
+          if (data) {
+            fetchUser();
+            toast.success('User Updated Successfully');
+            setIsEditDialogOpen(false)
+            setSelectedUser(null)
+          } else {
+            toast.error("User Not Updated");
+          }
+        }
+        catch (err) {
+          console.log(err);
+
+        }
+      }
+      // Add New user
+      updateUser()
+
     }
   }
 
@@ -557,18 +585,18 @@ export default function UserManagement() {
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
                         <span className="text-xl font-medium text-gray-700">
-                          {selectedUser.name
+                          {selectedUser.user_nicename
                             .split(" ")
                             .map((n: string) => n[0])
                             .join("")}
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-900">{selectedUser.name}</h3>
-                        <p className="text-gray-600">{selectedUser.email}</p>
+                        <h3 className="text-xl font-semibold text-gray-900">{selectedUser.user_nicename}</h3>
+                        <p className="text-gray-600">{selectedUser.user_email}</p>
                         <div className="flex gap-2 mt-2">
                           <Badge className={getRoleColor(selectedUser.role)}>{selectedUser.role}</Badge>
-                          <Badge className={getStatusColor(selectedUser.status)}>{selectedUser.status}</Badge>
+                          <Badge className={getStatusColor(selectedUser.status)}>{selectedUser.user_status}</Badge>
                         </div>
                       </div>
                     </div>
@@ -578,24 +606,25 @@ export default function UserManagement() {
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Join Date</Label>
                           <p className="text-sm text-gray-900">
-                            {new Date(selectedUser.joinDate).toLocaleDateString()}
+                            {new Date(selectedUser.user_registered).toLocaleDateString()}
                           </p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Last Login</Label>
-                          <p className="text-sm text-gray-900">{selectedUser.lastLogin}</p>
+                          <p className="text-sm text-gray-900">{new Date(selectedUser.user_registered).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Total Spent</Label>
                           <p className="text-sm font-semibold text-gray-900">
-                            ${selectedUser.totalSpent.toLocaleString()}
+                            $500
+                            {/* ${selectedUser.totalSpent.toLocaleString()} */}
                           </p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Total Orders</Label>
-                          <p className="text-sm text-gray-900">{selectedUser.totalOrders}</p>
+                          <p className="text-sm text-gray-900">{selectedUser.user_order}</p>
                         </div>
                       </div>
                     </div>
@@ -620,7 +649,7 @@ export default function UserManagement() {
                       <Input
                         id="edit-name"
                         name="name"
-                        defaultValue={selectedUser.name}
+                        defaultValue={selectedUser.user_nicename}
                         required
                         className="bg-white border-gray-300"
                       />
@@ -633,7 +662,7 @@ export default function UserManagement() {
                         id="edit-email"
                         name="email"
                         type="email"
-                        defaultValue={selectedUser.email}
+                        defaultValue={selectedUser.user_email}
                         required
                         className="bg-white border-gray-300"
                       />
@@ -657,7 +686,7 @@ export default function UserManagement() {
                       <Label htmlFor="edit-status" className="text-gray-700">
                         Status
                       </Label>
-                      <Select name="status" defaultValue={selectedUser.status}>
+                      <Select name="status" defaultValue={selectedUser.user_status}>
                         <SelectTrigger className="bg-white border-gray-300">
                           <SelectValue />
                         </SelectTrigger>
