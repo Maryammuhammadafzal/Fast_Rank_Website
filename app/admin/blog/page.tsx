@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 // Mock blog data
 const mockBlogPosts = [
@@ -101,9 +102,27 @@ const mockBlogPosts = [
   },
 ]
 
+interface Blogs {
+  id: number,
+  title: string,
+  slug: string,
+  excerpt:
+  string,
+  content:
+  string,
+  author: string,
+  category: string,
+  status: string,
+  publishDate: string,
+  lastModified: string,
+  views: number,
+  featured: boolean,
+  tags: string[],
+}
+
 export default function BlogManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [blogPosts, setBlogPosts] = useState(mockBlogPosts)
+  const [blogPosts, setBlogPosts] = useState<Blogs[] | null>(null);
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -112,13 +131,39 @@ export default function BlogManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
+
+  const loadPosts = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/posts.php", {
+        method: "GET"
+      });
+      const storedPosts = await res.json();
+      if (storedPosts) {
+        const reversedPosts = storedPosts.sort((a: any, b: any) => {
+          return new Date(b.post_modified).getTime() - new Date(a.post_modified).getTime()
+        })
+
+        setBlogPosts(reversedPosts);
+
+      } else {
+        setBlogPosts(null)
+      }
+    } catch (error) {
+      toast.error(`Error loading posts: ${error}`);
+    }
+  }
+
+  useEffect(() => {
+    loadPosts()
+  }, [])
+
   // Filter blog posts based on search and filters
-  const filteredPosts = blogPosts.filter((post) => {
+  const filteredPosts = blogPosts?.filter((post: any) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      post.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesCategory = filterCategory === "all" || post.category === filterCategory
     const matchesStatus = filterStatus === "all" || post.status === filterStatus
     return matchesSearch && matchesCategory && matchesStatus
@@ -146,14 +191,32 @@ export default function BlogManagement() {
       .trim()
   }
 
-  const handleDeletePost = (postId: number) => {
-    setBlogPosts(blogPosts.filter((post) => post.id !== postId))
+  const handleDeletePost = async (postId: number) => {
+    if (postId) {
+      try {
+        const res = await fetch('http://localhost:8080/fast-rank-backend/posts-delete.php', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ID: postId
+          }),
+        })
+        const text = await res.text();
+        const data = JSON.parse(text);
+        if (data.status === 'success') {
+          toast.success('Post Deleted Successfully');
+          loadPosts();
+          window.location.reload();
+        }
+      } catch (error) {
+        toast.error('Failed to delete this post');
+      }
+    }
   }
 
-  const handleAddPost = (formData: FormData) => {
+  const handleAddPost = async (formData: FormData) => {
     const title = formData.get("title") as string
     const newPost = {
-      id: Math.max(...blogPosts.map((p) => p.id)) + 1,
       title,
       slug: generateSlug(title),
       excerpt: formData.get("excerpt") as string,
@@ -167,36 +230,55 @@ export default function BlogManagement() {
       featured: formData.get("featured") === "on",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
-    setBlogPosts([...blogPosts, newPost])
-    setIsAddDialogOpen(false)
+
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/posts-add.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPost),
+      });
+
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data.status === 'success') {
+        setIsAddDialogOpen(false)
+        toast.success('Post Added Successfully');
+        loadPosts()
+      } else {
+        toast.error('Failed to add Post');
+      }
+
+    } catch (error) {
+      toast.error(`Failed Post Adding: ${error}`);
+
+    }
   }
 
   const handleEditPost = (formData: FormData) => {
     if (!selectedPost) return
 
     const title = formData.get("title") as string
-    const updatedPosts = blogPosts.map((post) =>
-      post.id === selectedPost.id
-        ? {
-            ...post,
-            title,
-            slug: generateSlug(title),
-            excerpt: formData.get("excerpt") as string,
-            content: formData.get("content") as string,
-            author: formData.get("author") as string,
-            category: formData.get("category") as string,
-            status: formData.get("status") as string,
-            publishDate:
-              formData.get("status") === "published" && !post.publishDate
-                ? new Date().toISOString().split("T")[0]
-                : post.publishDate,
-            lastModified: new Date().toISOString().split("T")[0],
-            featured: formData.get("featured") === "on",
-            tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
-          }
-        : post,
-    )
-    setBlogPosts(updatedPosts)
+    const updatedPosts = {
+      ID: selectedPost.ID,
+      title,
+      slug: generateSlug(title),
+      excerpt: formData.get("excerpt") as string,
+      content: formData.get("content") as string,
+      author: formData.get("author") as string,
+      category: formData.get("category") as string,
+      status: formData.get("status") as string,
+      publishDate:
+        formData.get("status") === "published" && !selectedPost?.publishDate
+          ? new Date().toISOString().split("T")[0]
+          : selectedPost.publishDate,
+      lastModified: new Date().toISOString().split("T")[0],
+      featured: formData.get("featured") === "on",
+      tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
+    }
+
+    // setBlogPosts(updatedPosts)
     setIsEditDialogOpen(false)
     setSelectedPost(null)
   }
@@ -361,7 +443,7 @@ export default function BlogManagement() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Posts</p>
-                      <p className="text-2xl font-bold text-gray-900">{blogPosts.length}</p>
+                      <p className="text-2xl font-bold text-gray-900">{blogPosts?.length}</p>
                     </div>
                     <span className="text-2xl">📄</span>
                   </div>
@@ -373,7 +455,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Published</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts.filter((p) => p.status === "published").length}
+                        {blogPosts?.filter((p) => p.status === "published").length}
                       </p>
                     </div>
                     <span className="text-2xl">✅</span>
@@ -386,7 +468,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Drafts</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts.filter((p) => p.status === "draft").length}
+                        {blogPosts?.filter((p) => p.status === "draft").length}
                       </p>
                     </div>
                     <span className="text-2xl">📝</span>
@@ -399,7 +481,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Views</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts.reduce((acc, p) => acc + p.views, 0).toLocaleString()}
+                        {blogPosts?.reduce((acc, p) => acc + p.views, 0).toLocaleString()}
                       </p>
                     </div>
                     <span className="text-2xl">📈</span>
@@ -456,7 +538,7 @@ export default function BlogManagement() {
             {/* Blog Posts Table */}
             <Card className="bg-white border-gray-200">
               <CardHeader>
-                <CardTitle className="text-gray-900">Blog Posts ({filteredPosts.length})</CardTitle>
+                <CardTitle className="text-gray-900">Blog Posts ({filteredPosts?.length})</CardTitle>
                 <CardDescription className="text-gray-600">Manage all blog articles</CardDescription>
               </CardHeader>
               <CardContent>
@@ -473,7 +555,7 @@ export default function BlogManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPosts.map((post) => (
+                    {filteredPosts?.map((post) => (
                       <TableRow key={post.id}>
                         <TableCell>
                           <div className="space-y-1">
