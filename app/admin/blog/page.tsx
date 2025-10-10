@@ -46,7 +46,7 @@ const mockBlogPosts = [
     category: "SEO",
     status: "published",
     publishDate: "2024-01-20",
-    lastModified: "2024-01-22",
+    post_modified: "2024-01-22",
     views: 2847,
     featured: true,
     tags: ["guest posting", "seo", "link building", "content marketing"],
@@ -62,7 +62,7 @@ const mockBlogPosts = [
     category: "Analytics",
     status: "published",
     publishDate: "2024-01-18",
-    lastModified: "2024-01-18",
+    post_modified: "2024-01-18",
     views: 1923,
     featured: false,
     tags: ["domain authority", "seo metrics", "analytics"],
@@ -78,7 +78,7 @@ const mockBlogPosts = [
     category: "Link Building",
     status: "draft",
     publishDate: null,
-    lastModified: "2024-01-25",
+    post_modified: "2024-01-25",
     views: 0,
     featured: false,
     tags: ["link building", "seo", "digital marketing"],
@@ -95,7 +95,7 @@ const mockBlogPosts = [
     category: "Content Marketing",
     status: "scheduled",
     publishDate: "2024-01-30",
-    lastModified: "2024-01-24",
+    post_modified: "2024-01-24",
     views: 0,
     featured: true,
     tags: ["content marketing", "roi", "analytics", "measurement"],
@@ -106,13 +106,14 @@ interface Blogs {
   id: number,
   post_title: string,
   slug: string,
-  excerpt: string,
+  post_excerpt: string,
   post_content: string,
-  author: string,
-  category: string,
-  status: string,
+  post_author: string,
+  post_type: string,
+  post_status: string,
+  post_date : string,
   publishDate: string,
-  lastModified: string,
+  post_modified: string,
   views: number,
   featured: boolean,
   tags: string[],
@@ -138,7 +139,7 @@ export default function BlogManagement() {
       const storedPosts = await res.json();
       if (storedPosts) {
         const reversedPosts = storedPosts.sort((a: any, b: any) => {
-          return new Date(b.post_modified).getTime() - new Date(a.post_modified).getTime()
+          return new Date(b.post_date).getTime() - new Date(a.post_date).getTime()
         })
 
         setBlogPosts(reversedPosts);
@@ -158,12 +159,12 @@ export default function BlogManagement() {
   // Filter blog posts based on search and filters
   const filteredPosts = blogPosts?.filter((post: any) => {
     const matchesSearch =
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.post_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.post_excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.post_author.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesCategory = filterCategory === "all" || post.category === filterCategory
-    const matchesStatus = filterStatus === "all" || post.status === filterStatus
+    const matchesCategory = filterCategory === "all" || post.post_type === filterCategory
+    const matchesStatus = filterStatus === "all" || post.post_status === filterStatus
     return matchesSearch && matchesCategory && matchesStatus
   })
 
@@ -213,17 +214,17 @@ export default function BlogManagement() {
   }
 
   const handleAddPost = async (formData: FormData) => {
-    const title = formData.get("title") as string
+    const post_title = formData.get("title") as string
     const newPost = {
-      title,
-      slug: generateSlug(title),
-      excerpt: formData.get("excerpt") as string,
-      content: formData.get("content") as string,
-      author: formData.get("author") as string,
-      category: formData.get("category") as string,
-      status: formData.get("status") as string,
+      post_title,
+      slug: generateSlug(post_title),
+      post_excerpt: formData.get("excerpt") as string,
+      post_content: formData.get("content") as string,
+      post_author: formData.get("author") as string,
+      post_type: formData.get("category") as string,
+      post_status: formData.get("status") as string,
       publishDate: formData.get("status") === "published" ? new Date().toISOString().split("T")[0] : null,
-      lastModified: new Date().toISOString().split("T")[0],
+      post_modified: new Date().toISOString().split("T")[0],
       views: 0,
       featured: formData.get("featured") === "on",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
@@ -257,21 +258,21 @@ export default function BlogManagement() {
   const handleEditPost = async (formData: FormData) => {
     if (!selectedPost) return
 
-    const title = formData.get("title") as string
+    const post_title = formData.get("title") as string
     const updatedPosts = {
       id: selectedPost.id,
-      title,
-      slug: generateSlug(title),
-      excerpt: formData.get("excerpt") as string,
-      content: formData.get("content") as string,
-      author: formData.get("author") as string,
-      category: formData.get("category") as string,
-      status: formData.get("status") as string,
+      post_title,
+      slug: generateSlug(post_title),
+      post_excerpt: formData.get("excerpt") as string,
+      post_content: formData.get("content") as string,
+      post_author: formData.get("author") as string,
+      post_type: formData.get("category") as string,
+      post_status: formData.get("status") as string,
       publishDate:
         formData.get("status") === "published" && !selectedPost?.publishDate
           ? new Date().toISOString().split("T")[0]
           : selectedPost.publishDate,
-      lastModified: new Date().toISOString().split("T")[0],
+      post_modified: new Date().toISOString().split("T")[0],
       featured: formData.get("featured") === "on",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
@@ -471,7 +472,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Published</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts?.filter((p) => p.status === "published").length}
+                        {blogPosts?.filter((p) => p.post_status === "published").length}
                       </p>
                     </div>
                     <span className="text-2xl">✅</span>
@@ -484,7 +485,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Drafts</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts?.filter((p) => p.status === "draft").length}
+                        {blogPosts?.filter((p) => p.post_status === "draft").length}
                       </p>
                     </div>
                     <span className="text-2xl">📝</span>
@@ -583,7 +584,7 @@ export default function BlogManagement() {
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
+                            <p className="text-sm text-gray-600 line-clamp-2">{post.post_excerpt}</p>
                             <div className="flex flex-wrap gap-1">
                               {post.tags.slice(0, 3).map((tag, index) => (
                                 <Badge key={index} variant="outline" className="text-xs">
@@ -601,14 +602,14 @@ export default function BlogManagement() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="text-gray-600">👤</span>
-                            <span className="text-sm text-gray-900">{post.author}</span>
+                            <span className="text-sm text-gray-900">{post.post_author}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{post.category}</Badge>
+                          <Badge variant="outline">{post.post_type}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(post.status)}>{post.status}</Badge>
+                          <Badge className={getStatusColor(post.post_status)}>{post.post_status}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
@@ -622,7 +623,7 @@ export default function BlogManagement() {
                             <span className="text-sm text-gray-900">
                               {post.publishDate
                                 ? new Date(post.publishDate).toLocaleDateString()
-                                : new Date(post.lastModified).toLocaleDateString()}
+                                : new Date(post.post_modified).toLocaleDateString()}
                             </span>
                           </div>
                         </TableCell>
@@ -694,7 +695,7 @@ export default function BlogManagement() {
                   <div className="space-y-6">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-2xl font-bold text-gray-900">{selectedPost.title}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">{selectedPost.post_title}</h2>
                         {selectedPost.featured && (
                           <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
                             Featured
@@ -702,9 +703,9 @@ export default function BlogManagement() {
                         )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                        <span>By {selectedPost.author}</span>
+                        <span>By {selectedPost.post_author}</span>
                         <span>•</span>
-                        <span>{selectedPost.category}</span>
+                        <span>{selectedPost.post_category}</span>
                         <span>•</span>
                         <span>
                           {selectedPost.publishDate
@@ -715,20 +716,20 @@ export default function BlogManagement() {
                         <span>{selectedPost.views.toLocaleString()} views</span>
                       </div>
                       <div className="flex gap-2 mb-4">
-                        <Badge className={getStatusColor(selectedPost.status)}>{selectedPost.status}</Badge>
-                        <Badge variant="outline">{selectedPost.category}</Badge>
+                        <Badge className={getStatusColor(selectedPost.post_status)}>{selectedPost.status}</Badge>
+                        <Badge variant="outline">{selectedPost.post_type}</Badge>
                       </div>
                     </div>
 
                     <div>
                       <h3 className="font-semibold mb-2 text-gray-900">Excerpt</h3>
-                      <p className="text-gray-600">{selectedPost.excerpt}</p>
+                      <p className="text-gray-600">{selectedPost.post_excerpt}</p>
                     </div>
 
                     <div>
                       <h3 className="font-semibold mb-2 text-gray-900">Content</h3>
                       <div className="prose max-w-none">
-                        <p className="whitespace-pre-wrap text-gray-900">{selectedPost.content}</p>
+                        <p className="whitespace-pre-wrap text-gray-900">{selectedPost.post_content}</p>
                       </div>
                     </div>
 
@@ -763,7 +764,7 @@ export default function BlogManagement() {
                       <Input
                         id="edit-title"
                         name="title"
-                        defaultValue={selectedPost.title}
+                        defaultValue={selectedPost.post_title}
                         required
                         className="bg-white border-gray-300"
                       />
@@ -775,7 +776,7 @@ export default function BlogManagement() {
                       <Textarea
                         id="edit-excerpt"
                         name="excerpt"
-                        defaultValue={selectedPost.excerpt}
+                        defaultValue={selectedPost.post_excerpt}
                         rows={2}
                         required
                         className="bg-white border-gray-300"
@@ -788,7 +789,7 @@ export default function BlogManagement() {
                       <Textarea
                         id="edit-content"
                         name="content"
-                        defaultValue={selectedPost.content}
+                        defaultValue={selectedPost.post_content}
                         rows={8}
                         required
                         className="bg-white border-gray-300"
@@ -802,7 +803,7 @@ export default function BlogManagement() {
                         <Input
                           id="edit-author"
                           name="author"
-                          defaultValue={selectedPost.author}
+                          defaultValue={selectedPost.post_author}
                           required
                           className="bg-white border-gray-300"
                         />
@@ -811,7 +812,7 @@ export default function BlogManagement() {
                         <Label htmlFor="edit-category" className="text-gray-700">
                           Category
                         </Label>
-                        <Select name="category" defaultValue={selectedPost.category}>
+                        <Select name="category" defaultValue={selectedPost.post_type}>
                           <SelectTrigger className="bg-white border-gray-300">
                             <SelectValue />
                           </SelectTrigger>
@@ -830,7 +831,7 @@ export default function BlogManagement() {
                         <Label htmlFor="edit-status" className="text-gray-700">
                           Status
                         </Label>
-                        <Select name="status" defaultValue={selectedPost.status}>
+                        <Select name="status" defaultValue={selectedPost.post_status}>
                           <SelectTrigger className="bg-white border-gray-300">
                             <SelectValue />
                           </SelectTrigger>
