@@ -104,12 +104,10 @@ const mockBlogPosts = [
 
 interface Blogs {
   id: number,
-  title: string,
+  post_title: string,
   slug: string,
-  excerpt:
-  string,
-  content:
-  string,
+  excerpt: string,
+  post_content: string,
   author: string,
   category: string,
   status: string,
@@ -198,7 +196,7 @@ export default function BlogManagement() {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ID: postId
+            id : postId
           }),
         })
         const text = await res.text();
@@ -256,12 +254,12 @@ export default function BlogManagement() {
     }
   }
 
-  const handleEditPost = (formData: FormData) => {
+  const handleEditPost = async (formData: FormData) => {
     if (!selectedPost) return
 
     const title = formData.get("title") as string
     const updatedPosts = {
-      ID: selectedPost.ID,
+      id: selectedPost.id,
       title,
       slug: generateSlug(title),
       excerpt: formData.get("excerpt") as string,
@@ -278,9 +276,27 @@ export default function BlogManagement() {
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
 
-    // setBlogPosts(updatedPosts)
-    setIsEditDialogOpen(false)
-    setSelectedPost(null)
+    try {
+      const res = await fetch("https://guestpostnow.io/guestpost-backend/posts-update.php", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedPosts),
+      });
+
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data) {
+        toast.success('Post Updated Successfully');
+        setIsEditDialogOpen(false)
+        setSelectedPost(null)
+        loadPosts();
+      }
+    } catch (error) {
+      toast.error(`Error Updating Post ${error}`);
+
+    }
   }
 
   const categories = ["SEO", "Link Building", "Content Marketing", "Analytics", "Digital Marketing", "Guest Posting"]
@@ -560,7 +576,7 @@ export default function BlogManagement() {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-gray-900">{post.title}</p>
+                              <p className="font-medium text-gray-900">{post.post_title}</p>
                               {post.featured && (
                                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
                                   Featured
@@ -644,7 +660,7 @@ export default function BlogManagement() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-gray-900">Delete Blog Post</AlertDialogTitle>
                                   <AlertDialogDescription className="text-gray-600">
-                                    Are you sure you want to delete "{post.title}"? This action cannot be undone.
+                                    Are you sure you want to delete "{post.post_title}"? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
