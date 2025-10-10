@@ -140,7 +140,9 @@ export default function ProductsManagement() {
           id: productId
         }),
       })
-      const text = await res.json();
+      const text = await res.text();
+      console.log(text);
+
       const data = JSON.parse(text);
 
       if (data.status === 'success') {
@@ -151,7 +153,7 @@ export default function ProductsManagement() {
       }
     } catch (error) {
       console.error("Error deleting product:", error)
-      toast.error("Error deleting product: ${error}")
+      toast.error(`Error deleting product: ${error}`)
     }
   }
 
@@ -185,6 +187,7 @@ export default function ProductsManagement() {
         fetchProducts();
         toast.success('Product Added Successfully');
         setIsAddDialogOpen(false)
+        window.location.reload();
 
       } else {
         toast.error('Product not Added')
@@ -202,6 +205,7 @@ export default function ProductsManagement() {
 
     try {
       const productData = {
+        id: selectedProduct.id,
         name: formData.get("name") as string,
         url: formData.get("url") as string,
         da: Number.parseInt(formData.get("da") as string),
@@ -213,6 +217,8 @@ export default function ProductsManagement() {
         status: formData.get("status") as string,
         price: Number.parseInt(formData.get("price") as string),
       }
+      console.log(productData);
+
 
       const res = await fetch("http://localhost:8080/fast-rank-backend/websites-update.php", {
         method: "PUT",
@@ -223,10 +229,11 @@ export default function ProductsManagement() {
       });
       const text = await res.text();
       const data = JSON.parse(text);
+      console.log(data);
 
       if (data.status === "success") {
         fetchProducts()
-        toast("Product updated successfully.")
+        toast.success("Product updated successfully.")
         setIsEditDialogOpen(false)
         setSelectedProduct(null)
       } else {
@@ -240,12 +247,12 @@ export default function ProductsManagement() {
   }
 
   const copyLink = (e: any, link: string) => {
-    e.preventDefault() 
+    e.preventDefault()
 
     // Copy to clipboard
     navigator.clipboard.writeText(link)
       .then(() => {
-        alert("Link copied to clipboard!") // ✅ feedback (replace with toast/snackbar later)
+        toast("Link copied!")
       })
       .catch((err) => {
         console.error("Failed to copy link: ", err)
@@ -505,11 +512,16 @@ export default function ProductsManagement() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Avg Price</p>
+
                       <p className="text-2xl font-bold text-gray-900">
                         $
-                        {products.length > 0
-                          ? Math.round(products.reduce((acc, w) => acc + w.price, 0) / products.length)
-                          : 0}
+                        {
+                          !products || !Array.isArray(products)
+                            ? 0
+                            : products.length > 0
+                              ? Math.round(products.reduce((acc, w) => acc + (Math.round(w.standardPrice) || 0), 0) / products.length)
+                              : 0
+                        }
                       </p>
                     </div>
                     <span className="text-2xl">💰</span>
@@ -705,7 +717,7 @@ export default function ProductsManagement() {
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-xl font-semibold text-gray-900">{selectedProduct.name}</h3>
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-600">
-                            <Link href={selectedProduct.url} onClick={(e) => copyLink(e,selectedProduct.url)}>🔗</Link>
+                            <Link href={selectedProduct.url} onClick={(e) => copyLink(e, selectedProduct.url)}>🔗</Link>
                           </Button>
                         </div>
                         <p className="text-gray-600 mb-2"><Link href={selectedProduct.url}>{selectedProduct.url}</Link></p>
@@ -834,7 +846,7 @@ export default function ProductsManagement() {
                           name="price"
                           type="number"
                           min="1"
-                          defaultValue={selectedProduct.price}
+                          defaultValue={selectedProduct.price || selectedProduct.standardPrice}
                           required
                           className="bg-white border-gray-300"
                         />
