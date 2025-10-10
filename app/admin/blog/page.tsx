@@ -115,7 +115,7 @@ interface Blogs {
   publishDate: string,
   post_modified: string,
   views: number,
-  featured: boolean,
+  featured: string,
   tags: string[],
 }
 
@@ -162,7 +162,7 @@ export default function BlogManagement() {
       post.post_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.post_excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.post_author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      post.tags.split(',').some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesCategory = filterCategory === "all" || post.post_type === filterCategory
     const matchesStatus = filterStatus === "all" || post.post_status === filterStatus
     return matchesSearch && matchesCategory && matchesStatus
@@ -205,7 +205,7 @@ export default function BlogManagement() {
         if (data.status === 'success') {
           toast.success('Post Deleted Successfully');
           loadPosts();
-          window.location.reload();
+          // window.location.reload();
         }
       } catch (error) {
         toast.error('Failed to delete this post');
@@ -215,6 +215,8 @@ export default function BlogManagement() {
 
   const handleAddPost = async (formData: FormData) => {
     const post_title = formData.get("title") as string
+    console.log(formData.get("featured"));
+    
     const newPost = {
       post_title,
       slug: generateSlug(post_title),
@@ -224,9 +226,10 @@ export default function BlogManagement() {
       post_type: formData.get("category") as string,
       post_status: formData.get("status") as string,
       publishDate: formData.get("status") === "published" ? new Date().toISOString().split("T")[0] : null,
+      post_date: new Date().toISOString().split("T")[0],
       post_modified: new Date().toISOString().split("T")[0],
       views: 0,
-      featured: formData.get("featured") === "on",
+      featured: formData.get("featured") === "on" ? "on " : "off",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
 
@@ -241,16 +244,19 @@ export default function BlogManagement() {
 
       const text = await res.text();
       const data = JSON.parse(text);
+      
       if (data.status === 'success') {
         setIsAddDialogOpen(false)
         toast.success('Post Added Successfully');
+        // window.location.reload();
         loadPosts()
       } else {
         toast.error('Failed to add Post');
       }
 
     } catch (error) {
-      toast.error(`Failed Post Adding: ${error}`);
+      toast.error(`Failed Post Adding`);
+      console.error(`Failed Post Adding: ${error}`);
 
     }
   }
@@ -273,12 +279,15 @@ export default function BlogManagement() {
           ? new Date().toISOString().split("T")[0]
           : selectedPost.publishDate,
       post_modified: new Date().toISOString().split("T")[0],
-      featured: formData.get("featured") === "on",
+      post_date: new Date().toISOString().split("T")[0],
+      featured: formData.get("featured") === "on" ? "on" : "off",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
+    console.log(updatedPosts);
+    
 
     try {
-      const res = await fetch("https://guestpostnow.io/guestpost-backend/posts-update.php", {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/posts-update.php", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -286,9 +295,13 @@ export default function BlogManagement() {
         body: JSON.stringify(updatedPosts),
       });
 
+
       const text = await res.text();
+      console.log(text);
+      
       const data = JSON.parse(text);
-      if (data) {
+      console.log(data);
+      if (data.status === "success") {
         toast.success('Post Updated Successfully');
         setIsEditDialogOpen(false)
         setSelectedPost(null)
@@ -498,7 +511,7 @@ export default function BlogManagement() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Views</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {blogPosts?.reduce((acc, p) => acc + p.views, 0).toLocaleString()}
+                        {blogPosts?.reduce((acc, p) => acc + Number(p.views), 0).toLocaleString()}
                       </p>
                     </div>
                     <span className="text-2xl">📈</span>
@@ -578,22 +591,24 @@ export default function BlogManagement() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-gray-900">{post.post_title}</p>
-                              {post.featured && (
+                              {post.featured == "on" || post.featured == "1" ? (
                                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
                                   Featured
                                 </Badge>
-                              )}
+                              ): ""}
                             </div>
                             <p className="text-sm text-gray-600 line-clamp-2">{post.post_excerpt}</p>
                             <div className="flex flex-wrap gap-1">
-                              {post.tags.slice(0, 3).map((tag, index) => (
+                              {/* {post.tags.slice(0, 3).map((tag, index) => ( */}
+                              {post.tags?.split(',').slice(0, 3).map((tag: any, index: number) => (
                                 <Badge key={index} variant="outline" className="text-xs">
                                   {tag}
                                 </Badge>
                               ))}
-                              {post.tags.length > 3 && (
+                              
+                              {post.tags.split(',').length > 3 && (
                                 <Badge variant="outline" className="text-xs">
-                                  +{post.tags.length - 3}
+                                  +{post.tags.split(',').length - 3}
                                 </Badge>
                               )}
                             </div>
@@ -696,16 +711,16 @@ export default function BlogManagement() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <h2 className="text-2xl font-bold text-gray-900">{selectedPost.post_title}</h2>
-                        {selectedPost.featured && (
+                        {selectedPost.featured == "on" || selectedPost.featured == "1" ? (
                           <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
                             Featured
                           </Badge>
-                        )}
+                        ): ""}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                         <span>By {selectedPost.post_author}</span>
                         <span>•</span>
-                        <span>{selectedPost.post_category}</span>
+                        <span>{selectedPost.post_type}</span>
                         <span>•</span>
                         <span>
                           {selectedPost.publishDate
@@ -716,7 +731,7 @@ export default function BlogManagement() {
                         <span>{selectedPost.views.toLocaleString()} views</span>
                       </div>
                       <div className="flex gap-2 mb-4">
-                        <Badge className={getStatusColor(selectedPost.post_status)}>{selectedPost.status}</Badge>
+                        <Badge className={getStatusColor(selectedPost.post_status)}>{selectedPost.post_status}</Badge>
                         <Badge variant="outline">{selectedPost.post_type}</Badge>
                       </div>
                     </div>
@@ -736,7 +751,7 @@ export default function BlogManagement() {
                     <div>
                       <h3 className="font-semibold mb-2 text-gray-900">Tags</h3>
                       <div className="flex flex-wrap gap-2">
-                        {selectedPost.tags.map((tag: string, index: number) => (
+                        {selectedPost.tags.split(',').map((tag: string, index: number) => (
                           <Badge key={index} variant="outline">
                             {tag}
                           </Badge>
@@ -849,7 +864,7 @@ export default function BlogManagement() {
                         <Input
                           id="edit-tags"
                           name="tags"
-                          defaultValue={selectedPost.tags.join(", ")}
+                          defaultValue={selectedPost.tags.split(',').join(", ")}
                           className="bg-white border-gray-300"
                         />
                       </div>
