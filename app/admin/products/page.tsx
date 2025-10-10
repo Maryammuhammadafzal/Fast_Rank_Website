@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import Link from "next/link"
 // import { useToast } from "@/hooks/use-toast"
 
 interface Product {
@@ -40,13 +41,14 @@ interface Product {
   url: string
   da: number
   dr: number
-  monthly_traffic: string
-  delivery_time: string
+  traffic: string
+  delivery: string
   description: string
   category: string
   status: string
   price: number
-  created_at: string
+  standardPrice: number
+  createdAt: string
   updated_at: string
 }
 
@@ -237,6 +239,19 @@ export default function ProductsManagement() {
     }
   }
 
+  const copyLink = (e: any, link: string) => {
+    e.preventDefault() 
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        alert("Link copied to clipboard!") // ✅ feedback (replace with toast/snackbar later)
+      })
+      .catch((err) => {
+        console.error("Failed to copy link: ", err)
+      })
+  }
+
   const categories = [
     "Technology",
     "Business",
@@ -371,6 +386,7 @@ export default function ProductsManagement() {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
+
                         <Label htmlFor="deliveryTime" className="text-gray-700">
                           Delivery Time
                         </Label>
@@ -598,17 +614,17 @@ export default function ProductsManagement() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <span className="text-gray-600">📈</span>
-                            <span className="font-medium text-gray-900">{product.monthly_traffic}</span>
+                            <span className="font-medium text-gray-900">{product.traffic}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <span className="text-gray-600">⏰</span>
-                            <span className="text-sm text-gray-900">{product.delivery_time}</span>
+                            <span className="text-sm text-gray-900">{product.delivery}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-semibold text-gray-900">${product.price}</span>
+                          <span className="font-semibold text-gray-900">${product.price || product.standardPrice}</span>
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(product.status)}>{product.status}</Badge>
@@ -689,10 +705,10 @@ export default function ProductsManagement() {
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-xl font-semibold text-gray-900">{selectedProduct.name}</h3>
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-600">
-                            🔗
+                            <Link href={selectedProduct.url} onClick={(e) => copyLink(e,selectedProduct.url)}>🔗</Link>
                           </Button>
                         </div>
-                        <p className="text-gray-600 mb-2">{selectedProduct.url}</p>
+                        <p className="text-gray-600 mb-2"><Link href={selectedProduct.url}>{selectedProduct.url}</Link></p>
                         <div className="flex gap-2">
                           <Badge variant="outline">{selectedProduct.category}</Badge>
                           <Badge className={getStatusColor(selectedProduct.status)}>{selectedProduct.status}</Badge>
@@ -708,12 +724,12 @@ export default function ProductsManagement() {
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Monthly Traffic</Label>
-                          <p className="text-lg font-semibold text-gray-900">{selectedProduct.monthly_traffic}</p>
+                          <p className="text-lg font-semibold text-gray-900">{selectedProduct.traffic}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Added Date</Label>
                           <p className="text-sm text-gray-900">
-                            {new Date(selectedProduct.created_at).toLocaleDateString()}
+                            {new Date(selectedProduct.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -724,18 +740,18 @@ export default function ProductsManagement() {
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Delivery Time</Label>
-                          <p className="text-lg font-semibold text-gray-900">{selectedProduct.delivery_time}</p>
+                          <p className="text-lg font-semibold text-gray-900">{selectedProduct.delivery}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Price</Label>
-                          <p className="text-lg font-semibold text-gray-900">${selectedProduct.price}</p>
+                          <p className="text-lg font-semibold text-gray-900">${selectedProduct.price || selectedProduct.standardPrice}</p>
                         </div>
                       </div>
                     </div>
 
                     <div>
                       <Label className="text-sm font-medium text-gray-600">Description</Label>
-                      <p className="text-sm mt-1 text-gray-900">{selectedProduct.description}</p>
+                      <p className="text-xs mt-1 text-gray-900">{selectedProduct.description || 'No Description'}</p>
                     </div>
                   </div>
                 )}
@@ -832,7 +848,7 @@ export default function ProductsManagement() {
                         <Input
                           id="edit-deliveryTime"
                           name="deliveryTime"
-                          defaultValue={selectedProduct.delivery_time}
+                          defaultValue={selectedProduct.delivery}
                           required
                           className="bg-white border-gray-300"
                         />
@@ -844,7 +860,7 @@ export default function ProductsManagement() {
                         <Input
                           id="edit-monthlyTraffic"
                           name="monthlyTraffic"
-                          defaultValue={selectedProduct.monthly_traffic}
+                          defaultValue={selectedProduct.traffic}
                           required
                           className="bg-white border-gray-300"
                         />
