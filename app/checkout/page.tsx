@@ -80,29 +80,29 @@ function CheckoutContent() {
 
     try {
       // Create order in database
-      const { data: order, error } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          product_id: productId,
-          product_name: productName,
-          amount: productPrice,
-          status: "pending",
-          payment_method: paymentMethod,
-          billing_info: billingInfo,
-        })
-        .select()
-        .single()
+      // const { data: order, error } = await supabase
+      //   .from("orders")
+      //   .insert({
+      //     user_id: user.id,
+      //     product_id: productId,
+      //     product_name: productName,
+      //     amount: productPrice,
+      //     status: "pending",
+      //     payment_method: paymentMethod,
+      //     billing_info: billingInfo,
+      //   })
+      //   .select()
+      //   .single()
 
-      if (error) throw error
+      // if (error) throw error
 
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // // Simulate payment processing
+      // await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Update order status
-      await supabase.from("orders").update({ status: "completed" }).eq("id", order.id)
+      // // Update order status
+      // await supabase.from("orders").update({ status: "completed" }).eq("id", order.id)
 
-      setOrderComplete(true)
+      // setOrderComplete(true)
     } catch (error) {
       console.error("Error processing order:", error)
       alert("There was an error processing your order. Please try again.")
