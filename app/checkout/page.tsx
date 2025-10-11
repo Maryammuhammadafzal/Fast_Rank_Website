@@ -14,14 +14,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CreditCard, ShoppingCart, Lock, CheckCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+// import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { user } = useAuth()
-  const supabase = createClient()
+  // const supabase = createClient()
 
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [processing, setProcessing] = useState(false)

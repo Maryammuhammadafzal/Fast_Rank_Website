@@ -95,7 +95,7 @@ export default function MarketplacePage() {
   useEffect(()=> {
   const productsData = [
   {
-    id: "p1",
+    id: 1,
     name: "TechVerse Blog",
     url: "https://www.techverseblog.com",
     da: 58,
