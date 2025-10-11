@@ -600,15 +600,15 @@ export default function BlogManagement() {
                             <p className="text-sm text-gray-600 line-clamp-2">{post.post_excerpt}</p>
                             <div className="flex flex-wrap gap-1">
                               {/* {post.tags.slice(0, 3).map((tag, index) => ( */}
-                              {post.tags?.split(',').slice(0, 3).map((tag: any, index: number) => (
+                              {post.tags?.toString().split(',').slice(0, 3).map((tag: any, index: number) => (
                                 <Badge key={index} variant="outline" className="text-xs">
                                   {tag}
                                 </Badge>
                               ))}
                               
-                              {post.tags.split(',').length > 3 && (
+                              {post.tags.toString().split(',').length > 3 && (
                                 <Badge variant="outline" className="text-xs">
-                                  +{post.tags.split(',').length - 3}
+                                  +{post.tags.toString().split(',').length - 3}
                                 </Badge>
                               )}
                             </div>
