@@ -9,11 +9,76 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+
+interface User {
+  user_nicename : string,
+  user_email: string, 
+  user_phone : string,
+  user_company: string,
+  user_bio: string,
+  user_url: string,
+  user_address: string,
+  user_pass: string
+}
 
 export default function ProfilePage() {
-  const { isAuthenticated, loading, user } = useAuth()
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  // const { isAuthenticated, loading, user } = useAuth()
   const router = useRouter()
+
+  const fetchUser = async () => {
+    setLoading(true)
+    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+      method: "GET"
+    });
+    console.log(res);
+
+    const text = await res.text();
+    const userData = JSON.parse(text);
+
+    if (userData) {
+      const adminEmail = localStorage.getItem('adminEmail')
+      const getUser = userData.find((item: any) => item.user_email === adminEmail);
+
+      setUser(getUser)
+      setLoading(false)
+    } else {
+      setUser(null)
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    const user_id = localStorage.getItem('user_id');
+    if (loggedIn === 'true') {
+      setIsAuthenticated(true);
+    }
+    if (user_id) {
+      const fetchUser = async () => {
+        setLoading(true)
+        const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+          method: "GET"
+        });
+        console.log(res);
+
+        const text = await res.text();
+        const userData = JSON.parse(text);
+
+        if (userData) {
+          const getUser = userData.find((item: any) => item.user_email === user_id);
+          setUser(getUser)
+          setLoading(false)
+        } else {
+          setUser(null)
+          setLoading(false)
+        }
+      }
+    }
+  })
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -60,16 +125,16 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue={user?.name?.split(" ")[0] || ""} />
+                    <Input id="firstName" defaultValue={user?.user_nicename?.split(" ")[0] || ""} />
                   </div>
                   <div>
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" defaultValue={user?.name?.split(" ")[1] || ""} />
+                    <Input id="lastName" defaultValue={user?.user_nicename?.split(" ")[1] || ""} />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.email || ""} />
+                  <Input id="email" type="email" defaultValue={user?.user_email || ""} />
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
