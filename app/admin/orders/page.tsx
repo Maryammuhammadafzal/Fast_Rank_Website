@@ -119,6 +119,20 @@ const mockServices = [
   },
 ]
 
+interface Orders {
+  id: string,
+  customer: string,
+  email: string,
+  service: string,
+  website: string,
+  amount: number,
+  status: string,
+  paymentStatus: string,
+  createdAt: string,
+  deliveryDate: string,
+  notes: string,
+}
+
 export default function OrdersManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("orders")
@@ -127,7 +141,7 @@ export default function OrdersManagement() {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedService, setSelectedService] = useState(null)
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: any) => {
     switch (status) {
       case "completed":
         return "bg-green-100 text-green-800"
@@ -142,7 +156,7 @@ export default function OrdersManagement() {
     }
   }
 
-  const getPaymentStatusColor = (status) => {
+  const getPaymentStatusColor = (status: any) => {
     switch (status) {
       case "paid":
         return "bg-green-100 text-green-800"
@@ -176,7 +190,7 @@ export default function OrdersManagement() {
       <div className="flex">
         <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
