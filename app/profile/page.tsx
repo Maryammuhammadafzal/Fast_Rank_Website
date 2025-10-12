@@ -14,6 +14,8 @@ import { EyeClosed, EyeIcon, EyeOffIcon } from "lucide-react"
 import { toast } from "sonner"
 
 interface User {
+  id : number,
+  role: string,
   user_nicename: string,
   user_email: string,
   user_phone: string,
@@ -80,6 +82,7 @@ export default function ProfilePage() {
     }
 
     const updatedProfile = {
+      id : user?.id,
       user_nicename: formData.get("firstName") as string + " " + formData.get("lastName") as string,
       user_phone: formData.get("phone") as string || "",
       user_bio: formData.get("bio") as string || "",
