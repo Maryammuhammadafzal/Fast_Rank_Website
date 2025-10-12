@@ -18,6 +18,8 @@ interface User {
   user_url: string,
   user_address: string,
   user_pass: string
+  role: string,
+  id: number
 }
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
