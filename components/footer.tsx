@@ -56,7 +56,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/marketplace"
+                  href="/services"
                   className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 >
                   Browse All

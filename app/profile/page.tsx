@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { EyeClosed, EyeIcon, EyeOffIcon } from "lucide-react"
 
 interface User {
-  user_nicename : string,
-  user_email: string, 
-  user_phone : string,
+  user_nicename: string,
+  user_email: string,
+  user_phone: string,
   user_company: string,
   user_bio: string,
   user_url: string,
@@ -25,36 +26,15 @@ interface User {
 export default function ProfilePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   // const { isAuthenticated, loading, user } = useAuth()
   const router = useRouter()
 
-  const fetchUser = async () => {
-    setLoading(true)
-    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
-      method: "GET"
-    });
-    console.log(res);
-
-    const text = await res.text();
-    const userData = JSON.parse(text);
-
-    if (userData) {
-      const adminEmail = localStorage.getItem('adminEmail')
-      const getUser = userData.find((item: any) => item.user_email === adminEmail);
-
-      setUser(getUser)
-      setLoading(false)
-    } else {
-      setUser(null)
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
     const loggedIn = localStorage.getItem('isLoggedIn');
     const user_id = localStorage.getItem('user_id');
-    if (loggedIn === 'true') {
+    if (loggedIn == 'true') {
       setIsAuthenticated(true);
     }
     if (user_id) {
@@ -77,14 +57,16 @@ export default function ProfilePage() {
           setLoading(false)
         }
       }
-    }
-  })
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login")
+      fetchUser();
     }
-  }, [isAuthenticated, loading, router])
+  }, [])
+
+  // useEffect(() => {
+  //   if (!loading && !isAuthenticated) {
+  //     router.push("/login")
+  //   }
+  // }, [])
 
   if (loading) {
     return (
@@ -100,9 +82,9 @@ export default function ProfilePage() {
     )
   }
 
-  if (!isAuthenticated) {
-    return null
-  }
+  // if (!isAuthenticated) {
+  //   return null
+  // }
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,7 +158,12 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" />
+                  <div className="relative w-full">
+                    <Input id="currentPassword" type={showPass ? "text" : "password"} defaultValue={user?.user_pass || ''} />
+                    <div className="absolute top-2 right-0 w-5 h-5" onClick={() => setShowPass(!showPass)}>
+                     {showPass ?  <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="newPassword">New Password</Label>

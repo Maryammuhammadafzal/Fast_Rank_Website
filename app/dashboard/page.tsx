@@ -101,10 +101,10 @@ const sidebarItems = [
   { name: "My Orders", value: "orders", icon: ShoppingBag },
   { name: "Add Funds", value: "add-funds", icon: Wallet },
   { name: "Reviews", value: "reviews", icon: Star },
-  { name: "Settings", value: "settings", icon: FileText },
-  { name: "Quick Actions", value: "quick-actions", icon: Package },
+  // { name: "Quick Actions", value: "quick-actions", icon: Package },
   { name: "Account Summary", value: "account-summary", icon: PenTool },
   { name: "Billing Information", value: "billing", icon: DollarSign },
+  { name: "Settings", value: "settings", icon: FileText },
 ]
 
 export default function DashboardPage() {

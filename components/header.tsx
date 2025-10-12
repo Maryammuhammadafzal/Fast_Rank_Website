@@ -1,6 +1,6 @@
 "use client"
 
-import { Menu, User } from "lucide-react"
+import { ChevronDown, Menu, User } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
@@ -22,6 +22,7 @@ interface User {
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const router = useRouter()
 
@@ -54,8 +55,6 @@ export function Header() {
     const userLoggedIn = localStorage.getItem('isLoggedIn');
     if (userLoggedIn || userLoggedIn === 'true') {
       setIsAuthenticated(true);
-    } else {
-      router.push('/login')
     }
   }, [])
 
@@ -111,12 +110,54 @@ export function Header() {
             >
               Marketplace
             </Link>
-            <Link
+            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+              <DropdownMenuTrigger asChild>
+                <Link
+                  href="/services"
+                  className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
+                  onMouseEnter={() => setIsOpen(true)}
+                  onMouseLeave={() => setIsOpen(false)}
+                >
+                  Services <ChevronDown className="h-4 w-4 inline-block" />
+                </Link>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                onMouseEnter={() => setIsOpen(true)}
+                onMouseLeave={() => setIsOpen(false)}
+                className="w-56 bg-white border border-gray-200 shadow-lg"
+              >
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/services/guest-posts"
+                    className="text-secondary-foreground hover:text-primary-foreground transition-colors"
+                  >
+                    Guest Posts
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/services/article-writing"
+                    className="text-secondary-foreground hover:text-primary-foreground transition-colors"
+                  >
+                    Article Writing
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/services/link-insertions"
+                    className="text-secondary-foreground hover:text-primary-foreground transition-colors"
+                  >
+                    Link Insertions
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* <Link
               href="/services"
               className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
             >
               Services
-            </Link>
+            </Link> */}
             <Link
               href="/packages"
               className="text-secondary-foreground hover:text-secondary-foreground/70 transition-colors font-medium"
@@ -142,32 +183,42 @@ export function Header() {
               <>
                 {/* User Menu */}
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger >
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-secondary-foreground hover:bg-primary-foreground/10"
                     >
                       <User className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">{user?.user_nicename}</span>
+                      <span className="hidden sm:inline">{user?.user_nicename || "Guest"}</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
                     <DropdownMenuItem>
-                      <Link href="/dashboard">Dashboard</Link>
+                      <Link href="/dashboard" className="w-full block px-2 py-1 text-gray-700 ">
+                        Dashboard
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Link href="/orders">My Orders</Link>
+                      <Link href="/orders" className="w-full block px-2 py-1 text-gray-700 ">
+                        My Orders
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Link href="/profile">Profile</Link>
+                      <Link href="/profile" className="w-full block px-2 py-1 text-gray-700 ">
+                        Profile
+                      </Link>
                     </DropdownMenuItem>
                     {user?.role === "admin" && (
                       <DropdownMenuItem>
-                        <Link href="/admin">Admin Panel</Link>
+                        <Link href="/admin" className="w-full block px-2 py-1 text-gray-700 ">
+                          Admin Panel
+                        </Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <span className="w-full block px-2 py-1 text-gray-700 ">Logout</span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
