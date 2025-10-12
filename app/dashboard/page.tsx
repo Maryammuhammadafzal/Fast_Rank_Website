@@ -126,7 +126,9 @@ interface User {
   role: string,
   id: number,
   user_status: string,
-  balance: string
+  balance: string,
+  user_spent: number,
+  total_funds: number
 }
 
 interface PaymentMethod {
@@ -303,7 +305,7 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       console.log(data);
-      
+
       if (data.status === "success") {
         toast.success("Payment method added successfully");
         setIsAddDialogOpen(false);
@@ -329,7 +331,7 @@ export default function DashboardPage() {
       name_on_card: formData.get("nameOnCard") as string,
     };
     console.log(updatedMethod);
-    
+
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/payment-methods-edit.php", {
         method: "PUT",
@@ -384,6 +386,54 @@ export default function DashboardPage() {
       }
     } catch (error) {
       toast.error("Error updating default");
+    }
+  };
+
+  const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
+    if (!user?.id) {
+      toast.error("User not authenticated. Please log in.");
+      return;
+    }
+    if (!amount || Number.parseFloat(amount) < 10) {
+      toast.error("Please enter an amount of $10 or more.");
+      return;
+    }
+    if (!selectedPaymentMethod || selectedPaymentMethod === "new-card") {
+      toast.error("Please select a valid payment method or add a new card.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
+      const payload = {
+        user_id: user?.id,
+        amount: Number.parseFloat(amount).toFixed(2),
+        payment_type: paymentMethod?.card_type,
+        payment_method_id: paymentMethod?.id, // Use the actual ID from paymentMethods
+        requestDate: new Date().toISOString(),
+        processedBy: user?.user_email,
+      };
+
+      const res = await fetch("http://localhost:8080/fast-rank-backend/funds-request-add.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Funds added successfully!");
+        // Optionally update user balance locally or reload
+        user.balance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2);
+        setFundAmount(""); // Reset form
+      } else {
+        toast.error(data.message || "Failed to add funds.");
+      }
+    } catch (error) {
+      toast.error("Error adding funds: " + error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1191,17 +1241,17 @@ export default function DashboardPage() {
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/10 rounded-full mb-4">
                           <Wallet className="h-8 w-8 text-secondary" />
                         </div>
-                        <p className="text-4xl font-bold text-secondary mb-2">$1,250.00</p>
+                        <p className="text-4xl font-bold text-secondary mb-2">${user?.balance}</p>
                         <p className="text-sm text-muted-foreground">Ready to use for orders</p>
                       </div>
                       <div className="space-y-3 pt-4 border-t">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Total added</span>
-                          <span className="font-medium">$2,500.00</span>
+                          <span className="font-medium">${user?.total_funds}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Total spent</span>
-                          <span className="font-medium">$1,250.00</span>
+                          <span className="font-medium">${user?.user_spent}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -1259,29 +1309,34 @@ export default function DashboardPage() {
                       <div>
                         <Label className="text-base mb-3 block">Select Payment Method</Label>
                         <div className="space-y-3">
-                          <button
-                            onClick={() => setSelectedPaymentMethod("card-4242")}
-                            className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "card-4242"
-                              ? "border-secondary bg-secondary/5"
-                              : "hover:bg-muted/50"
-                              }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
-                                <CreditCard className="h-5 w-5 text-secondary" />
-                              </div>
-                              <div className="text-left">
-                                <p className="text-sm font-medium">•••• •••• •••• 4242</p>
-                                <p className="text-xs text-muted-foreground">Visa - Expires 12/26</p>
-                              </div>
-                            </div>
-                            {selectedPaymentMethod === "card-4242" && (
-                              <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
-                            )}
-                          </button>
+                          {paymentMethods ?
+                           paymentMethods?.map((method) => (
+                              <button
+                                onClick={() => setSelectedPaymentMethod(method.card_number_last4)}
+                                className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === method.card_number_last4
+                                  ? "border-secondary bg-secondary/5"
+                                  : "hover:bg-muted/50"
+                                  }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
+                                    <CreditCard className="h-5 w-5 text-secondary" />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium">•••• •••• •••• {method.card_number_last4}</p>
+                                    <p className="text-xs text-muted-foreground">{method.card_type} - Expires {method.expiry_month.toString().length === 1 ? '0'+method.expiry_month : method.expiry_month}/{method.expiry_year}</p>
+                                  </div>
+                                </div>
+                                {selectedPaymentMethod === method.card_number_last4 && (
+                                  <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
+                                )}
+                              </button>
+
+                            )) : (<p className="text-muted-foreground">No payment methods added yet.</p>)
+                          }
 
                           <button
-                            onClick={() => setSelectedPaymentMethod("new-card")}
+                            onClick={() => {setSelectedPaymentMethod("new-card"); setActiveTab("billing");}}
                             className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "new-card"
                               ? "border-secondary bg-secondary/5"
                               : "hover:bg-muted/50"
@@ -1296,9 +1351,9 @@ export default function DashboardPage() {
                                 <p className="text-xs text-muted-foreground">Use a different payment method</p>
                               </div>
                             </div>
-                            {selectedPaymentMethod === "new-card" && (
+                            {/* {selectedPaymentMethod === "new-card" && (
                               <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
-                            )}
+                            )} */}
                           </button>
                         </div>
                       </div>
@@ -1324,6 +1379,7 @@ export default function DashboardPage() {
                         <Button
                           className="w-full h-12 text-base bg-secondary text-secondary-foreground hover:bg-secondary/90"
                           disabled={!fundAmount || Number.parseFloat(fundAmount) < 10}
+                          onClick={() => handleAddFunds(fundAmount)}
                         >
                           <ArrowUpCircle className="h-5 w-5 mr-2" />
                           Add Funds to Account
