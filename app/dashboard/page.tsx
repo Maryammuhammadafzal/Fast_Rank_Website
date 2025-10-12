@@ -107,13 +107,29 @@ const sidebarItems = [
   { name: "Settings", value: "settings", icon: FileText },
 ]
 
+interface User {
+  user_nicename: string,
+  user_email: string,
+  user_phone: string,
+  user_company: string,
+  user_registered: string,
+  user_bio: string,
+  user_url: string,
+  user_address: string,
+  user_pass: string
+  role: string,
+  id: number,
+  user_status: string,
+  balance : string
+}
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [mockStats, setMockStats] = useState({
     totalOrders: 0,
     activeOrders: 0,
