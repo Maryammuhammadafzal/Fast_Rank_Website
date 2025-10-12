@@ -21,19 +21,19 @@ interface Product {
   url: string
   da: number
   dr: number
-  monthly_traffic: string
-  delivery_time: string
+  traffic: string
+  delivery: string
   description: string
   category: string
   status: string
-  price: number
+  standardPrice: number
   created_at: string
   updated_at: string
 }
 
 export default function MarketplacePage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [priceRange, setPriceRange] = useState([0, 2000])
@@ -41,60 +41,9 @@ export default function MarketplacePage() {
   const [trafficFilter, setTrafficFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
 
-  // const supabase = createClient()
-
-  // const fetchProducts = async () => {
-  //   try {
-  //     console.log("[v0] Fetching products from Supabase...")
-  //     setLoading(true)
-  //     const { data, error } = await supabase
-  //       .from("products")
-  //       .select("*")
-  //       .eq("status", "active")
-  //       .order("created_at", { ascending: false })
-
-  //     if (error) {
-  //       console.error("[v0] Error fetching products:", error)
-  //       throw error
-  //     }
-
-  //     console.log("[v0] Successfully fetched products:", data?.length || 0)
-  //     setProducts(data || [])
-  //   } catch (error) {
-  //     console.error("[v0] Error fetching products:", error)
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-
-  // useEffect(() => {
-  //   fetchProducts()
-
-  //   const channel = supabase
-  //     .channel("products-changes")
-  //     .on(
-  //       "postgres_changes",
-  //       {
-  //         event: "*",
-  //         schema: "public",
-  //         table: "products",
-  //         filter: "status=eq.active",
-  //       },
-  //       (payload : any) => {
-  //         console.log("[v0] Real-time update received:", payload)
-  //         fetchProducts()
-  //       },
-  //     )
-  //     .subscribe()
-
-  //   return () => {
-  //     supabase.removeChannel(channel)
-  //   }
-  // }, [])
 
   const fetchProducts = async () => {
     try {
-      setLoading(true)
       const res = await fetch('http://localhost:8080/fast-rank-backend/websites.php', {
         method: 'GET',
         // headers: { 'Content-Type': 'application/json' },
@@ -103,8 +52,10 @@ export default function MarketplacePage() {
         const data = await res.json();
         const sortedWebsites = data?.data.sort((a: any, b: any) => {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        })
+        });
+        
         setProducts(sortedWebsites || [])
+        setLoading(false)
       }
     } catch (error) {
       console.error("fetching products:", error)
@@ -124,8 +75,8 @@ export default function MarketplacePage() {
     //     url: "https://www.techverseblog.com",
     //     da: 58,
     //     dr: 62,
-    //     monthly_traffic: "120K",
-    //     delivery_time: "2 days",
+    //     traffic: "120K",
+    //     delivery: "2 days",
     //     description: "A high-authority technology blog covering AI, gadgets, and web development trends.",
     //     category: "Technology",
     //     status: "active",
@@ -139,8 +90,8 @@ export default function MarketplacePage() {
     //     url: "https://www.healthybite.co.uk",
     //     da: 45,
     //     dr: 48,
-    //     monthly_traffic: "85K",
-    //     delivery_time: "3 days",
+    //     traffic: "85K",
+    //     delivery: "3 days",
     //     description: "A health and wellness site focused on nutrition tips, fitness guides, and organic recipes.",
     //     category: "Health",
     //     status: "active",
@@ -154,8 +105,8 @@ export default function MarketplacePage() {
     //     url: "https://www.stylevista.com",
     //     da: 52,
     //     dr: 57,
-    //     monthly_traffic: "97K",
-    //     delivery_time: "1 day",
+    //     traffic: "97K",
+    //     delivery: "1 day",
     //     description: "A fashion and lifestyle magazine showcasing modern trends, designer interviews, and beauty advice.",
     //     category: "Fashion",
     //     status: "active",
@@ -169,8 +120,8 @@ export default function MarketplacePage() {
     //     url: "https://www.ecotraveller.net",
     //     da: 61,
     //     dr: 66,
-    //     monthly_traffic: "140K",
-    //     delivery_time: "4 days",
+    //     traffic: "140K",
+    //     delivery: "4 days",
     //     description: "A sustainable travel platform promoting eco-friendly destinations and responsible tourism.",
     //     category: "Travel",
     //     status: "active",
@@ -184,8 +135,8 @@ export default function MarketplacePage() {
     //     url: "https://www.cryptocurrencyinsights.io",
     //     da: 68,
     //     dr: 72,
-    //     monthly_traffic: "210K",
-    //     delivery_time: "2 days",
+    //     traffic: "210K",
+    //     delivery: "2 days",
     //     description: "A blockchain and crypto analysis platform delivering latest updates, project reviews, and market insights.",
     //     category: "Finance",
     //     status: "active",
@@ -217,13 +168,13 @@ export default function MarketplacePage() {
         product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+      const matchesPrice = product.standardPrice >= priceRange[0] && product.standardPrice <= priceRange[1]
       const matchesDA = product.da >= daRange[0] && product.da <= daRange[1]
 
       // Traffic filter logic
       let matchesTraffic = true
       if (trafficFilter !== "all") {
-        const traffic = parseTraffic(product.monthly_traffic)
+        const traffic = parseTraffic(product.traffic)
         switch (trafficFilter) {
           case "low":
             matchesTraffic = traffic < 100000
@@ -245,9 +196,9 @@ export default function MarketplacePage() {
     .sort((a, b) => {
       switch (sortBy) {
         case "price-low":
-          return a.price - b.price
+          return a.standardPrice - b.standardPrice
         case "price-high":
-          return b.price - a.price
+          return b.standardPrice - a.standardPrice
         case "da-high":
           return b.da - a.da
         case "newest":
@@ -256,7 +207,7 @@ export default function MarketplacePage() {
       }
     })
 
-  const maxPrice = products.length > 0 ? Math.max(...products.map((p) => p.price)) : 2000
+  const maxPrice = products.length > 0 ? Math.max(...products.map((p) => p.standardPrice)) : 2000
 
   useEffect(() => {
     if (products.length > 0) {
@@ -285,7 +236,7 @@ export default function MarketplacePage() {
   const router = useRouter()
 
   const handleBuyNow = (product: Product) => {
-    const checkoutUrl = `/checkout?productId=${product.id}&name=${encodeURIComponent(product.name)}&price=${product.price}&type=${encodeURIComponent(product.category)}&description=${encodeURIComponent(product.description)}`
+    const checkoutUrl = `/checkout?productId=${product.id}&name=${encodeURIComponent(product.name)}&price=${product.standardPrice}&type=${encodeURIComponent(product.category)}&description=${encodeURIComponent(product.description)}`
     router.push(checkoutUrl)
   }
 
@@ -495,18 +446,18 @@ export default function MarketplacePage() {
                         <div className="text-muted-foreground">DR</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-semibold text-secondary">{product.monthly_traffic}</div>
+                        <div className="font-semibold text-secondary">{product.traffic}</div>
                         <div className="text-muted-foreground">Traffic</div>
                       </div>
                     </div>
 
-                    <div className="text-sm text-muted-foreground">Delivery: {product.delivery_time}</div>
+                    <div className="text-sm text-muted-foreground">Delivery: {product.delivery}</div>
 
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold text-secondary">${product.price}</span>
+                            <span className="text-2xl font-bold text-secondary">${product.standardPrice}</span>
                           </div>
                           <Badge variant="outline" className="text-xs">
                             {product.category}
@@ -522,7 +473,7 @@ export default function MarketplacePage() {
                           <ShoppingCart className="h-4 w-4 mr-2" />
                           Buy Now
                         </Button>
-                        <Link href={`/service/${product.id}`}>
+                        <Link href={`${product.url}`}>
                           <Button variant="outline" size="icon">
                             <ExternalLink className="h-4 w-4" />
                           </Button>
