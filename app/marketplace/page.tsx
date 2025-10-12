@@ -236,7 +236,7 @@ export default function MarketplacePage() {
   const router = useRouter()
 
   const handleBuyNow = (product: Product) => {
-    const checkoutUrl = `/checkout?productId=${product.id}&name=${encodeURIComponent(product.name)}&price=${product.standardPrice}&type=${encodeURIComponent(product.category)}&description=${encodeURIComponent(product.description)}`
+    const checkoutUrl = `/checkout?productId=${product.id}&name=${encodeURIComponent(product.name)}&price=${product.standardPrice}&type=${encodeURIComponent('website')}&description=${encodeURIComponent(product.description)}`
     router.push(checkoutUrl)
   }
 

@@ -17,10 +17,23 @@ import { CreditCard, ShoppingCart, Lock, CheckCircle } from "lucide-react"
 // import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 
+interface User {
+  id: number,
+  role: string,
+  user_nicename: string,
+  user_email: string,
+  user_phone: string,
+  user_company: string,
+  user_bio: string,
+  user_url: string,
+  user_address: string,
+  user_pass: string
+}
+
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const [user, setUser] = useState<User | null>(null)
   // const supabase = createClient()
 
   const [paymentMethod, setPaymentMethod] = useState("card")
@@ -34,10 +47,35 @@ function CheckoutContent() {
   const productType = searchParams.get("type") || "service"
   const productDescription = searchParams.get("description") || ""
 
+  const fetchUser = async () => {
+    // setLoading(true)
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    const user_id = localStorage.getItem('user_id');
+    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+      method: "GET"
+    });
+    console.log(res);
+
+    const text = await res.text();
+    const userData = JSON.parse(text);
+
+    if (userData) {
+      const getUser = userData.find((item: any) => item.user_email === user_id);
+      setUser(getUser)
+      // setLoading(false)
+    } else {
+      setUser(null)
+      // setLoading(false)
+    }
+  }
+  useEffect(() => {
+    fetchUser();
+  }, [])
+
   // Form state
   const [billingInfo, setBillingInfo] = useState({
     fullName: "",
-    email: user?.email || "",
+    email: user?.user_email || "",
     phone: "",
     address: "",
     city: "",
@@ -54,8 +92,8 @@ function CheckoutContent() {
   })
 
   useEffect(() => {
-    if (user?.email) {
-      setBillingInfo((prev) => ({ ...prev, email: user.email || "" }))
+    if (user?.user_email) {
+      setBillingInfo((prev) => ({ ...prev, email: user.user_email || "" }))
     }
   }, [user])
 
@@ -76,10 +114,33 @@ function CheckoutContent() {
       return
     }
 
+
     setProcessing(true)
 
     try {
       // Create order in database
+
+      const order = {
+        // id: user,
+        userId: user.user_email,
+        userName: user.user_nicename,
+        itemName: productName,
+        price: productPrice,
+        status: "pending",
+        payment_method: paymentMethod,
+        billing_info: billingInfo,
+        date: new Date().toISOString(),
+        orderDate: new Date().toLocaleDateString(),
+        description: productDescription,
+        // features: item.features || [],
+        type: productType || 'website',
+        // Order details
+        // article: orderDetails.article ? orderDetails.article : '',
+        // file: fileData ? fileData : null,
+        // message: orderDetails.message ? orderDetails.message : '',
+        // message_time: orderDetails.message ? new Date().toISOString() : null,
+        submittedAt: new Date().toISOString(),
+      };
       // const { data: order, error } = await supabase
       //   .from("orders")
       //   .insert({
@@ -96,13 +157,13 @@ function CheckoutContent() {
 
       // if (error) throw error
 
-      // // Simulate payment processing
-      // await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Simulate payment processing
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // // Update order status
       // await supabase.from("orders").update({ status: "completed" }).eq("id", order.id)
 
-      // setOrderComplete(true)
+      setOrderComplete(true)
     } catch (error) {
       console.error("Error processing order:", error)
       alert("There was an error processing your order. Please try again.")

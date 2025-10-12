@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 // Mock data for dashboard
 const mockOrders = [
@@ -123,6 +124,17 @@ interface User {
   balance : string
 }
 
+interface PaymentMethod {
+  id: number;
+  card_number_last4: string;
+  expiry_month: number;
+  expiry_year: number;
+  card_type: string;
+  name_on_card: string;
+  is_default: boolean;
+  created_at: string;
+}
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -130,6 +142,18 @@ export default function DashboardPage() {
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
   const [user, setUser] = useState<User | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // Load from backend
+
+  // Mock data for billing history (replace with fetch from backend)
+  const billingHistory = [
+    { id: "ORD-001", date: "January 15, 2024", amount: "$297.00" },
+    { id: "ORD-002", date: "January 20, 2024", amount: "$247.00" },
+  ];
+
   const [mockStats, setMockStats] = useState({
     totalOrders: 0,
     activeOrders: 0,
@@ -138,6 +162,7 @@ export default function DashboardPage() {
     avgRating: 4.8,
     savedAmount: 450,
   })
+
 
   const router = useRouter();
 
@@ -222,6 +247,128 @@ export default function DashboardPage() {
       loadOrders()
     }
   }, [user])
+
+    // Load payment methods (call on mount or refresh)
+  const loadPaymentMethods = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8080/fast-rank-backend/payment-methods-get.php?user_id=${user?.id}`, {
+        method: "GET",
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setPaymentMethods(data.data || []);
+      } else {
+        toast.error("Failed to load payment methods");
+      }
+    } catch (error) {
+      toast.error("Error loading payment methods");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, [user?.id]);
+
+  // Add payment method
+  const handleAddPaymentMethod = async (formData: FormData) => {
+    const newMethod = {
+      user_id: user?.id,
+      card_number: formData.get("cardNumber") as string,
+      expiry_month: parseInt(formData.get("expiryMonth") as string),
+      expiry_year: parseInt(formData.get("expiryYear") as string),
+      card_type: formData.get("cardType") as string,
+      name_on_card: formData.get("nameOnCard") as string,
+    };
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/payment-methods-add.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMethod),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Payment method added successfully");
+        setIsAddDialogOpen(false);
+        loadPaymentMethods();
+      } else {
+        toast.error(data.message || "Failed to add payment method");
+      }
+    } catch (error) {
+      toast.error("Error adding payment method");
+    }
+  };
+
+  // Edit payment method
+  const handleEditPaymentMethod = async (formData: FormData) => {
+    if (!selectedMethod) return;
+    const updatedMethod = {
+      id: selectedMethod.id,
+      user_id: user?.id,
+      card_number: formData.get("cardNumber") as string,
+      expiry_month: parseInt(formData.get("expiryMonth") as string),
+      expiry_year: parseInt(formData.get("expiryYear") as string),
+      card_type: formData.get("cardType") as string,
+      name_on_card: formData.get("nameOnCard") as string,
+    };
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/payment-methods-edit.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedMethod),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Payment method updated successfully");
+        setIsEditDialogOpen(false);
+        setSelectedMethod(null);
+        loadPaymentMethods();
+      } else {
+        toast.error(data.message || "Failed to update payment method");
+      }
+    } catch (error) {
+      toast.error("Error updating payment method");
+    }
+  };
+
+  // Delete payment method
+  const handleDeletePaymentMethod = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this payment method?")) return;
+    try {
+      const res = await fetch(`http://localhost:8080/fast-rank-backend/payment-methods-delete.php?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Payment method deleted successfully");
+        loadPaymentMethods();
+      } else {
+        toast.error(data.message || "Failed to delete payment method");
+      }
+    } catch (error) {
+      toast.error("Error deleting payment method");
+    }
+  };
+
+  // Set default payment method
+  const handleSetDefault = async (id: number) => {
+    try {
+      const res = await fetch(`http://localhost:8080/fast-rank-backend/payment-methods-set-default.php?id=${id}`, {
+        method: "PUT",
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Default payment method updated");
+        loadPaymentMethods();
+      } else {
+        toast.error(data.message || "Failed to update default");
+      }
+    } catch (error) {
+      toast.error("Error updating default");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     if (!status) return "bg-muted text-muted-foreground border-border"
