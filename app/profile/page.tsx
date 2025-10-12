@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
 import { EyeClosed, EyeIcon, EyeOffIcon } from "lucide-react"
 
 interface User {
@@ -68,6 +68,11 @@ export default function ProfilePage() {
   //   }
   // }, [])
 
+  const handleUpdateProfile = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent default form submission
+    const formData = new FormData(e.currentTarget);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -97,7 +102,7 @@ export default function ProfilePage() {
             <p className="text-muted-foreground">Manage your account information and preferences</p>
           </div>
 
-          <div className="space-y-6">
+          <form onSubmit={handleUpdateProfile} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
@@ -161,7 +166,7 @@ export default function ProfilePage() {
                   <div className="relative w-full">
                     <Input id="currentPassword" type={showPass ? "text" : "password"} defaultValue={user?.user_pass || ''} />
                     <div className="absolute top-2 right-0 w-5 h-5" onClick={() => setShowPass(!showPass)}>
-                     {showPass ?  <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                      {showPass ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
                     </div>
                   </div>
                 </div>
@@ -180,7 +185,7 @@ export default function ProfilePage() {
               <Button variant="outline">Cancel</Button>
               <Button>Save Changes</Button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
 
