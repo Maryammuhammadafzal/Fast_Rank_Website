@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { FormEvent, useEffect, useState } from "react"
 import { EyeClosed, EyeIcon, EyeOffIcon } from "lucide-react"
+import { toast } from "sonner"
 
 interface User {
   user_nicename: string,
@@ -71,6 +72,46 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // Prevent default form submission
     const formData = new FormData(e.currentTarget);
+
+    const newPassword = formData.get("newPassword") as string;
+    const confirmPassword = formData.get("newPassword") as string;
+    if (newPassword !== confirmPassword) {
+      toast.error('Password is not Correct');
+    }
+
+    const updatedProfile = {
+      user_nicename: formData.get("firstName") as string + " " + formData.get("lastName") as string,
+      user_phone: formData.get("phone") as string || "",
+      user_bio: formData.get("bio") as string || "",
+      user_company: formData.get("company") as string || "",
+      user_url: formData.get("website") as string || "",
+      user_address: formData.get("address") as string || "",
+      user_pass: formData.get("newPassword") as string || "",
+    };
+
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/user-update.php", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedProfile),
+      });
+
+      const text = await res.text();
+      console.log("Response text:", text);
+      const data = JSON.parse(text);
+
+      if (data.status === "success") {
+        toast.success("User updated Successfully");
+        window.location.reload();
+      } else {
+        toast.error(`Failed to update User: ${data.message || "Unknown error"}`);
+      }
+    } catch (error) {
+      toast.error(`Failed Update User: ${error}`);
+      console.error(`Failed User Update: ${error}`);
+    }
   }
 
   if (loading) {
@@ -121,7 +162,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.user_email || ""} />
+                  <Input id="email" type="email" disabled defaultValue={user?.user_email || ""} />
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
@@ -183,7 +224,7 @@ export default function ProfilePage() {
 
             <div className="flex justify-end space-x-2">
               <Button variant="outline">Cancel</Button>
-              <Button>Save Changes</Button>
+              <Button type="submit" >Save Changes</Button>
             </div>
           </form>
         </div>
