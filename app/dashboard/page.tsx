@@ -389,53 +389,71 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
-    if (!user?.id) {
-      toast.error("User not authenticated. Please log in.");
-      return;
-    }
-    if (!amount || Number.parseFloat(amount) < 10) {
-      toast.error("Please enter an amount of $10 or more.");
-      return;
-    }
-    if (!selectedPaymentMethod || selectedPaymentMethod === "new-card") {
-      toast.error("Please select a valid payment method or add a new card.");
-      return;
-    }
+ const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
+  if (!user?.id) {
+    toast.error("User not authenticated. Please log in.");
+    return;
+  }
+  if (!amount || Number.parseFloat(amount) < 10) {
+    toast.error("Please enter an amount of $10 or more.");
+    return;
+  }
+  if (!selectedPaymentMethod || selectedPaymentMethod === "new-card") {
+    toast.error("Please select a valid payment method or add a new card.");
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
+  try {
+    const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
+    const payload = {
+      user_id: user?.id,
+      amount: Number.parseFloat(amount).toFixed(2),
+      payment_method_id: paymentMethod?.id, // Ensure this is an integer or null
+      payment_type: paymentMethod?.card_type || "card", // Default to "card" if not specified
+      requestDate: new Date().toISOString(),
+      processedBy: user?.user_email || null,
+    };
+
+    console.log("Payload:", payload);
+
+    const res = await fetch("http://localhost:8080/fast-rank-backend/funds-request-add.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    console.log("Response:", res);
+
+    const text = await res.text(); // Always get text first
+    console.log("Raw Response:", text);
+
+    let data;
     try {
-      const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
-      const payload = {
-        user_id: user?.id,
-        amount: Number.parseFloat(amount).toFixed(2),
-        payment_type: paymentMethod?.card_type,
-        payment_method_id: paymentMethod?.id, // Use the actual ID from paymentMethods
-        requestDate: new Date().toISOString(),
-        processedBy: user?.user_email,
-      };
-
-      const res = await fetch("http://localhost:8080/fast-rank-backend/funds-request-add.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (data.status === "success") {
-        toast.success("Funds added successfully!");
-        // Optionally update user balance locally or reload
-        user.balance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2);
-        setFundAmount(""); // Reset form
-      } else {
-        toast.error(data.message || "Failed to add funds.");
-      }
-    } catch (error) {
-      toast.error("Error adding funds: " + error);
-    } finally {
-      setIsLoading(false);
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Raw Text:", text);
+      toast.error("Invalid server response. Check logs.");
+      return;
     }
-  };
+
+    console.log("Parsed Data:", data);
+
+    if (data.status === "success") {
+      toast.success("Funds request submitted successfully!");
+      
+      user.balance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2); // Update locally
+      setFundAmount(""); // Reset form
+    } else {
+      toast.error(data.message || "Failed to add funds.");
+    }
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    toast.error("Error adding funds: " + (error || "Unknown error"));
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const getStatusColor = (status: string) => {
     if (!status) return "bg-muted text-muted-foreground border-border"
@@ -1318,12 +1336,14 @@ export default function DashboardPage() {
                                   : "hover:bg-muted/50"
                                   }`}
                               >
+                               {/* { console.log(method.card_number_last4)} */}
+                                
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
                                     <CreditCard className="h-5 w-5 text-secondary" />
                                   </div>
                                   <div className="text-left">
-                                    <p className="text-sm font-medium">•••• •••• •••• {method.card_number_last4}</p>
+                                    <p className="text-sm font-medium">•••• •••• •••• {method?.card_number_last4}</p>
                                     <p className="text-xs text-muted-foreground">{method.card_type} - Expires {method.expiry_month.toString().length === 1 ? '0'+method.expiry_month : method.expiry_month}/{method.expiry_year}</p>
                                   </div>
                                 </div>
