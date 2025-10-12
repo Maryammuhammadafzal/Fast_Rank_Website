@@ -7,11 +7,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function OrdersPage() {
-  const { isAuthenticated, loading } = useAuth()
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  // const [user, setUser] = useState<User | null>(null);
   const router = useRouter()
+
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem('isLoggedIn');
+    if (userLoggedIn || userLoggedIn === 'true') {
+      setIsAuthenticated(true);
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {

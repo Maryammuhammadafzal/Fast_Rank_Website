@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider"
 import { Search, Filter, ExternalLink, TrendingUp, X, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface Product {
   id: string
@@ -91,87 +92,110 @@ export default function MarketplacePage() {
   //   }
   // }, [])
 
-  
-  useEffect(()=> {
-  const productsData = [
-  {
-    id: 1,
-    name: "TechVerse Blog",
-    url: "https://www.techverseblog.com",
-    da: 58,
-    dr: 62,
-    monthly_traffic: "120K",
-    delivery_time: "2 days",
-    description: "A high-authority technology blog covering AI, gadgets, and web development trends.",
-    category: "Technology",
-    status: "active",
-    price: 149,
-    created_at: "2025-09-01T10:30:00Z",
-    updated_at: "2025-10-05T12:00:00Z"
-  },
-  {
-    id: "p2",
-    name: "HealthyBite",
-    url: "https://www.healthybite.co.uk",
-    da: 45,
-    dr: 48,
-    monthly_traffic: "85K",
-    delivery_time: "3 days",
-    description: "A health and wellness site focused on nutrition tips, fitness guides, and organic recipes.",
-    category: "Health",
-    status: "active",
-    price: 120,
-    created_at: "2025-08-22T09:00:00Z",
-    updated_at: "2025-09-15T14:20:00Z"
-  },
-  {
-    id: "p3",
-    name: "StyleVista",
-    url: "https://www.stylevista.com",
-    da: 52,
-    dr: 57,
-    monthly_traffic: "97K",
-    delivery_time: "1 day",
-    description: "A fashion and lifestyle magazine showcasing modern trends, designer interviews, and beauty advice.",
-    category: "Fashion",
-    status: "active",
-    price: 135,
-    created_at: "2025-09-10T08:00:00Z",
-    updated_at: "2025-09-25T11:15:00Z"
-  },
-  {
-    id: "p4",
-    name: "EcoTraveller",
-    url: "https://www.ecotraveller.net",
-    da: 61,
-    dr: 66,
-    monthly_traffic: "140K",
-    delivery_time: "4 days",
-    description: "A sustainable travel platform promoting eco-friendly destinations and responsible tourism.",
-    category: "Travel",
-    status: "active",
-    price: 160,
-    created_at: "2025-07-18T13:10:00Z",
-    updated_at: "2025-10-01T10:45:00Z"
-  },
-  {
-    id: "p5",
-    name: "CryptoInsights",
-    url: "https://www.cryptocurrencyinsights.io",
-    da: 68,
-    dr: 72,
-    monthly_traffic: "210K",
-    delivery_time: "2 days",
-    description: "A blockchain and crypto analysis platform delivering latest updates, project reviews, and market insights.",
-    category: "Finance",
-    status: "active",
-    price: 180,
-    created_at: "2025-08-05T09:45:00Z",
-    updated_at: "2025-09-30T16:30:00Z"
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('http://localhost:8080/fast-rank-backend/websites.php', {
+        method: 'GET',
+        // headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const sortedWebsites = data?.data.sort((a: any, b: any) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        setProducts(sortedWebsites || [])
+      }
+    } catch (error) {
+      console.error("fetching products:", error)
+      toast.error("The products table doesn't exist yet. Please run the database setup scripts first.")
+    } finally {
+      setLoading(false)
+    }
   }
-]
-  setProducts(productsData)
-}, [])
+
+  useEffect(() => {
+
+    fetchProducts()
+    // const productsData = [
+    //   {
+    //     id: 1,
+    //     name: "TechVerse Blog",
+    //     url: "https://www.techverseblog.com",
+    //     da: 58,
+    //     dr: 62,
+    //     monthly_traffic: "120K",
+    //     delivery_time: "2 days",
+    //     description: "A high-authority technology blog covering AI, gadgets, and web development trends.",
+    //     category: "Technology",
+    //     status: "active",
+    //     price: 149,
+    //     created_at: "2025-09-01T10:30:00Z",
+    //     updated_at: "2025-10-05T12:00:00Z"
+    //   },
+    //   {
+    //     id: "p2",
+    //     name: "HealthyBite",
+    //     url: "https://www.healthybite.co.uk",
+    //     da: 45,
+    //     dr: 48,
+    //     monthly_traffic: "85K",
+    //     delivery_time: "3 days",
+    //     description: "A health and wellness site focused on nutrition tips, fitness guides, and organic recipes.",
+    //     category: "Health",
+    //     status: "active",
+    //     price: 120,
+    //     created_at: "2025-08-22T09:00:00Z",
+    //     updated_at: "2025-09-15T14:20:00Z"
+    //   },
+    //   {
+    //     id: "p3",
+    //     name: "StyleVista",
+    //     url: "https://www.stylevista.com",
+    //     da: 52,
+    //     dr: 57,
+    //     monthly_traffic: "97K",
+    //     delivery_time: "1 day",
+    //     description: "A fashion and lifestyle magazine showcasing modern trends, designer interviews, and beauty advice.",
+    //     category: "Fashion",
+    //     status: "active",
+    //     price: 135,
+    //     created_at: "2025-09-10T08:00:00Z",
+    //     updated_at: "2025-09-25T11:15:00Z"
+    //   },
+    //   {
+    //     id: "p4",
+    //     name: "EcoTraveller",
+    //     url: "https://www.ecotraveller.net",
+    //     da: 61,
+    //     dr: 66,
+    //     monthly_traffic: "140K",
+    //     delivery_time: "4 days",
+    //     description: "A sustainable travel platform promoting eco-friendly destinations and responsible tourism.",
+    //     category: "Travel",
+    //     status: "active",
+    //     price: 160,
+    //     created_at: "2025-07-18T13:10:00Z",
+    //     updated_at: "2025-10-01T10:45:00Z"
+    //   },
+    //   {
+    //     id: "p5",
+    //     name: "CryptoInsights",
+    //     url: "https://www.cryptocurrencyinsights.io",
+    //     da: 68,
+    //     dr: 72,
+    //     monthly_traffic: "210K",
+    //     delivery_time: "2 days",
+    //     description: "A blockchain and crypto analysis platform delivering latest updates, project reviews, and market insights.",
+    //     category: "Finance",
+    //     status: "active",
+    //     price: 180,
+    //     created_at: "2025-08-05T09:45:00Z",
+    //     updated_at: "2025-09-30T16:30:00Z"
+    //   }
+    // ]
+    // setProducts(productsData)
+  }, [])
 
 
 
