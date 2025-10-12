@@ -30,10 +30,15 @@ import {
   Wallet,
   CreditCard,
   ArrowUpCircle,
+  Loader2,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { AlertDialogHeader } from "@/components/ui/alert-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Mock data for dashboard
 const mockOrders = [
@@ -121,7 +126,7 @@ interface User {
   role: string,
   id: number,
   user_status: string,
-  balance : string
+  balance: string
 }
 
 interface PaymentMethod {
@@ -166,27 +171,28 @@ export default function DashboardPage() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
-        method: "GET"
-      });
-      console.log(res);
+  const fetchUser = async () => {
+    const res = await fetch("http://localhost:8080/fast-rank-backend/users.php", {
+      method: "GET"
+    });
+    console.log(res);
 
-      const text = await res.text();
-      const userData = JSON.parse(text);
-      console.log(userData);
+    const text = await res.text();
+    const userData = JSON.parse(text);
+    console.log(userData);
 
-      if (userData) {
-        const user_id = localStorage.getItem('user_id')
-        const getUser = userData.find((item: any) => item.user_email === user_id);
-        console.log(getUser);
+    if (userData) {
+      const user_id = localStorage.getItem('user_id')
+      const getUser = userData.find((item: any) => item.user_email === user_id);
+      console.log(getUser);
 
-        setUser(getUser)
-      } else {
-        setUser(null)
-      }
+      setUser(getUser)
+    } else {
+      setUser(null)
     }
+  }
+
+  useEffect(() => {
     // Load user data
     fetchUser();
   }, []);
@@ -238,7 +244,7 @@ export default function DashboardPage() {
             avgRating: 4.8,
             savedAmount: 450,
           })
-         
+
         } catch (error) {
           console.error("Error loading admin orders:", error)
         }
@@ -248,7 +254,7 @@ export default function DashboardPage() {
     }
   }, [user])
 
-    // Load payment methods (call on mount or refresh)
+  // Load payment methods (call on mount or refresh)
   const loadPaymentMethods = async () => {
     setIsLoading(true);
     try {
@@ -256,13 +262,18 @@ export default function DashboardPage() {
         method: "GET",
       });
       const data = await res.json();
+      console.log(data);
+
       if (data.status === "success") {
         setPaymentMethods(data.data || []);
       } else {
+        console.log(data.message);
+
         toast.error("Failed to load payment methods");
       }
     } catch (error) {
       toast.error("Error loading payment methods");
+      console.error("Error loading payment methods", error);
     } finally {
       setIsLoading(false);
     }
@@ -275,13 +286,15 @@ export default function DashboardPage() {
   // Add payment method
   const handleAddPaymentMethod = async (formData: FormData) => {
     const newMethod = {
-      user_id: user?.id,
+      user_id: 13,
       card_number: formData.get("cardNumber") as string,
       expiry_month: parseInt(formData.get("expiryMonth") as string),
       expiry_year: parseInt(formData.get("expiryYear") as string),
-      card_type: formData.get("cardType") as string,
+      card_type: formData.get("cardType") as string || "visa",
       name_on_card: formData.get("nameOnCard") as string,
     };
+    console.log(newMethod);
+
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/payment-methods-add.php", {
         method: "POST",
@@ -289,6 +302,8 @@ export default function DashboardPage() {
         body: JSON.stringify(newMethod),
       });
       const data = await res.json();
+      console.log(data);
+      
       if (data.status === "success") {
         toast.success("Payment method added successfully");
         setIsAddDialogOpen(false);
@@ -306,13 +321,15 @@ export default function DashboardPage() {
     if (!selectedMethod) return;
     const updatedMethod = {
       id: selectedMethod.id,
-      user_id: user?.id,
+      user_id: 13,
       card_number: formData.get("cardNumber") as string,
       expiry_month: parseInt(formData.get("expiryMonth") as string),
       expiry_year: parseInt(formData.get("expiryYear") as string),
-      card_type: formData.get("cardType") as string,
+      card_type: formData.get("cardType") as string || "visa",
       name_on_card: formData.get("nameOnCard") as string,
     };
+    console.log(updatedMethod);
+    
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/payment-methods-edit.php", {
         method: "PUT",
@@ -635,7 +652,7 @@ export default function DashboardPage() {
                           <div className="space-y-3">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Member since</span>
-                              <span>{user?.user_registered.slice(0,11)}</span>
+                              <span>{user?.user_registered.slice(0, 11)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Account status</span>
@@ -986,47 +1003,172 @@ export default function DashboardPage() {
                   <CardContent className="space-y-6">
                     <div>
                       <h4 className="font-semibold mb-4">Payment Methods</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-secondary/10 rounded flex items-center justify-center">
-                              <span className="text-xs font-bold">••••</span>
+                      {isLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <span>Loading payment methods...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {paymentMethods.length === 0 ? (
+                            <p className="text-muted-foreground">No payment methods added yet.</p>
+                          ) : (
+                            paymentMethods.map((method) => (
+                              <div key={method.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-secondary/10 rounded flex items-center justify-center">
+                                    <CreditCard className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">•••• •••• •••• {method.card_number_last4}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Expires {method.expiry_month}/{method.expiry_year}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{method.name_on_card}</p>
+                                    <p className="text-xs text-muted-foreground">{method.card_type}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {/* {method.is_default && <Badge variant="default" className="bg-green-100 text-green-800">Default</Badge>} */}
+                                  <Button variant="ghost" size="sm" onClick={() => { setSelectedMethod(method); setIsEditDialogOpen(true); }}>
+                                    Edit
+                                  </Button>
+                                  <Dialog open={isEditDialogOpen && selectedMethod?.id == method.id} onOpenChange={() => { if (selectedMethod?.id == method.id) setSelectedMethod(null); setIsEditDialogOpen(false); }}>
+                                    <DialogTrigger >
+                                      {/* <Button variant="ghost" size="sm" onClick={() => { console.log("clicked", method); setSelectedMethod(method); setIsEditDialogOpen(true); }}>
+                                        Edit
+                                      </Button> */}
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <AlertDialogHeader>
+                                        <DialogTitle>Edit Payment Method</DialogTitle>
+                                        <DialogDescription>Update your payment details</DialogDescription>
+                                      </AlertDialogHeader>
+                                      <form onSubmit={(e) => { e.preventDefault(); handleEditPaymentMethod(new FormData(e.currentTarget)); }} className="space-y-4">
+                                        <div>
+                                          <Label htmlFor="cardNumber">Card Number</Label>
+                                          <Input id="cardNumber" name="cardNumber" defaultValue={`**** **** **** ${method.card_number_last4}`} disabled />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <Label htmlFor="expiryMonth">Expiry Month</Label>
+                                            <Input id="expiryMonth" name="expiryMonth" type="number" defaultValue={method.expiry_month} min={1} max={12} />
+                                          </div>
+                                          <div>
+                                            <Label htmlFor="expiryYear">Expiry Year</Label>
+                                            <Input id="expiryYear" name="expiryYear" type="number" defaultValue={method.expiry_year} min={2025} />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <Label htmlFor="nameOnCard">Name on Card</Label>
+                                          <Input id="nameOnCard" name="nameOnCard" defaultValue={method.name_on_card} />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor="cardType">Card Type</Label>
+                                          <Select defaultValue={method.card_type}>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select card type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="visa">Visa</SelectItem>
+                                              <SelectItem value="mastercard">Mastercard</SelectItem>
+                                              <SelectItem value="amex">American Express</SelectItem>
+                                              <SelectItem value="discover">Discover</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="flex justify-end space-x-2">
+                                          <Button type="button" variant="outline" onClick={() => { setSelectedMethod(null); setIsEditDialogOpen(false); }}>Cancel</Button>
+                                          <Button type="submit">Save Changes</Button>
+                                        </div>
+                                      </form>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Button variant="ghost" size="sm" onClick={() => handleSetDefault(method.id)} disabled={method.is_default}>
+                                    {method.is_default ? "Default" : "Set Default"}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDeletePaymentMethod(method.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="bg-transparent w-full mt-2">
+                            Add Payment Method
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Payment Method</DialogTitle>
+                            <DialogDescription>Add a new payment method</DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={(e) => { e.preventDefault(); handleAddPaymentMethod(new FormData(e.currentTarget)); }} className="space-y-4">
+                            <div>
+                              <Label htmlFor="cardNumber">Card Number</Label>
+                              <Input id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" type="text" inputMode="numeric" pattern="[0-9]{16}" required />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="expiryMonth">Expiry Month</Label>
+                                <Input id="expiryMonth" name="expiryMonth" type="number" placeholder="MM" min={1} max={12} required />
+                              </div>
+                              <div>
+                                <Label htmlFor="expiryYear">Expiry Year</Label>
+                                <Input id="expiryYear" name="expiryYear" type="number" placeholder="YY" min={25} required />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="cvv">CVV</Label>
+                                <Input id="cvv" name="cvv" type="number" placeholder="123" maxLength={3} required />
+                              </div>
+                              <div>
+                                <Label htmlFor="cardType">Card Type</Label>
+                                <Select name="cardType" defaultValue="visa" required> {/* Ensure a default value */}
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select card type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="visa">Visa</SelectItem>
+                                    <SelectItem value="mastercard">Mastercard</SelectItem>
+                                    <SelectItem value="amex">American Express</SelectItem>
+                                    <SelectItem value="discover">Discover</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                             <div>
-                              <p className="text-sm font-medium">•••• •••• •••• 4242</p>
-                              <p className="text-xs text-muted-foreground">Expires 12/26</p>
+                              <Label htmlFor="nameOnCard">Name on Card</Label>
+                              <Input id="nameOnCard" name="nameOnCard" placeholder="John Doe" required />
                             </div>
-                          </div>
-                          <Badge variant="outline">Default</Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <Button variant="outline" className="flex-1 bg-transparent">
-                          Add Payment Method
-                        </Button>
-                        <Button variant="outline" className="flex-1 bg-transparent">
-                          Edit Payment Method
-                        </Button>
-                      </div>
+
+                            <div className="flex justify-end space-x-2">
+                              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                              <Button type="submit">Add Card</Button>
+                            </div>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
                     </div>
+                    {/* )} */}
 
                     <div>
                       <h4 className="font-semibold mb-4">Billing History</h4>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <p className="text-sm font-medium">Order #ORD-001</p>
-                            <p className="text-xs text-muted-foreground">January 15, 2024</p>
+                        {billingHistory.map((bill) => (
+                          <div key={bill.id} className="flex items-center justify-between p-3 border rounded">
+                            <div>
+                              <p className="text-sm font-medium">{bill.id}</p>
+                              <p className="text-xs text-muted-foreground">{bill.date}</p>
+                            </div>
+                            <span className="text-sm font-medium">{bill.amount}</span>
                           </div>
-                          <span className="text-sm font-medium">$297.00</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <p className="text-sm font-medium">Order #ORD-002</p>
-                            <p className="text-xs text-muted-foreground">January 20, 2024</p>
-                          </div>
-                          <span className="text-sm font-medium">$247.00</span>
-                        </div>
+                        ))}
                       </div>
                       <Button variant="outline" className="w-full mt-4 bg-transparent">
                         View Full Billing History
