@@ -154,7 +154,33 @@ export default function DashboardPage() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // Load from backend
+  const [paypalEmail, setPaypalEmail] = useState(""); // New state for PayPal email
+  const [otp, setOtp] = useState(""); // New state for OTP
+  const [isOtpRequired, setIsOtpRequired] = useState(false);
 
+  // Function to get month and year
+  const getMonthAndYear = (date: Date | string | undefined) => {
+    if (!date) return "Unknown"; // Handle undefined user_registered
+    const d = new Date(date); // Convert to Date object
+    if (isNaN(d.getTime())) return "Invalid Date"; // Handle invalid date
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${month} ${year}`; // e.g., "October 2025"
+  };
   // Mock data for billing history (replace with fetch from backend)
   const billingHistory = [
     { id: "ORD-001", date: "January 15, 2024", amount: "$297.00" },
@@ -198,6 +224,34 @@ export default function DashboardPage() {
     // Load user data
     fetchUser();
   }, []);
+
+  const fetchOrder = async () => {
+    const res = await fetch("http://localhost:8080/fast-rank-backend/orders.php", {
+      method: "GET"
+    });
+    console.log(res);
+
+    const text = await res.text();
+    const ordersData = JSON.parse(text);
+    console.log(ordersData);
+
+    if (ordersData) {
+      const user_id = localStorage.getItem('user_id')
+      const getOrder = ordersData.find((item: any) => item.user_email === user_id);
+      console.log(getOrder);
+
+      setUser(getOrder)
+    } else {
+      setUser(null)
+    }
+  }
+
+  useEffect(() => {
+    // Load user data
+    fetchOrder();
+  }, []);
+
+
 
   useEffect(() => {
     const userLoggedIn = localStorage.getItem('isLoggedIn');
@@ -287,13 +341,57 @@ export default function DashboardPage() {
 
   // Add payment method
   const handleAddPaymentMethod = async (formData: FormData) => {
+    const paymentType = formData.get("paymentType") as string || "card";
+    if (paymentType === "paypal") {
+      if (!paypalEmail) {
+        toast.error("Please enter your PayPal email.");
+        return;
+      }
+      if (isOtpRequired) {
+        if (!otp) {
+          toast.error("Please enter the OTP.");
+          return;
+        }
+        // Verify OTP with backend
+        const verifyResponse = await fetch("http://localhost:8080/fast-rank-backend/verify-otp.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: user?.id, paypal_email: paypalEmail, otp }),
+        });
+        const verifyData = await verifyResponse.json();
+        if (verifyData.status !== "success") {
+          toast.error(verifyData.message || "OTP verification failed.");
+          return;
+        }
+        setIsOtpRequired(false); // OTP verified, no longer required
+      } else {
+        // Request OTP for first-time setup
+        const otpResponse = await fetch("http://localhost:8080/fast-rank-backend/request-otp.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: user?.id, paypal_email: paypalEmail }),
+        });
+        const otpData = await otpResponse.json();
+        if (otpData.status === "success") {
+          toast.success("OTP sent to your PayPal email. Please enter it.");
+          setIsOtpRequired(true);
+          return;
+        } else {
+          toast.error(otpData.message || "Failed to request OTP.");
+          return;
+        }
+      }
+    }
+
     const newMethod = {
-      user_id: 13,
-      card_number: formData.get("cardNumber") as string,
-      expiry_month: parseInt(formData.get("expiryMonth") as string),
-      expiry_year: parseInt(formData.get("expiryYear") as string),
-      card_type: formData.get("cardType") as string || "visa",
-      name_on_card: formData.get("nameOnCard") as string,
+      user_id: user?.id || 13, // Use dynamic user_id if available
+      card_number: paymentType === "card" ? (formData.get("cardNumber") as string) : null,
+      expiry_month: paymentType === "card" ? parseInt(formData.get("expiryMonth") as string) : null,
+      expiry_year: paymentType === "card" ? parseInt(formData.get("expiryYear") as string) : null,
+      card_type: paymentType === "card" ? (formData.get("cardType") as string || "visa") : null,
+      name_on_card: paymentType === "card" ? (formData.get("nameOnCard") as string) : null,
+      paypal_email: paymentType === "paypal" ? paypalEmail : null,
+      payment_type: paymentType,
     };
     console.log(newMethod);
 
@@ -309,6 +407,9 @@ export default function DashboardPage() {
       if (data.status === "success") {
         toast.success("Payment method added successfully");
         setIsAddDialogOpen(false);
+        setPaypalEmail(""); // Reset PayPal email
+        setOtp(""); // Reset OTP
+        setIsOtpRequired(false); // Reset OTP requirement
         loadPaymentMethods();
       } else {
         toast.error(data.message || "Failed to add payment method");
@@ -389,71 +490,96 @@ export default function DashboardPage() {
     }
   };
 
- const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
-  if (!user?.id) {
-    toast.error("User not authenticated. Please log in.");
-    return;
-  }
-  if (!amount || Number.parseFloat(amount) < 10) {
-    toast.error("Please enter an amount of $10 or more.");
-    return;
-  }
-  if (!selectedPaymentMethod || selectedPaymentMethod === "new-card") {
-    toast.error("Please select a valid payment method or add a new card.");
-    return;
-  }
-
-  setIsLoading(true);
-  try {
-    const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
-    const payload = {
-      user_id: user?.id,
-      amount: Number.parseFloat(amount).toFixed(2),
-      payment_method_id: paymentMethod?.id, // Ensure this is an integer or null
-      payment_type: paymentMethod?.card_type || "card", // Default to "card" if not specified
-      requestDate: new Date().toISOString(),
-      processedBy: user?.user_email || null,
-    };
-
-    console.log("Payload:", payload);
-
-    const res = await fetch("http://localhost:8080/fast-rank-backend/funds-request-add.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    console.log("Response:", res);
-
-    const text = await res.text(); // Always get text first
-    console.log("Raw Response:", text);
-
-    let data;
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError, "Raw Text:", text);
-      toast.error("Invalid server response. Check logs.");
+  const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
+    if (!user?.id) {
+      toast.error("User not authenticated. Please log in.");
+      return;
+    }
+    if (!amount || Number.parseFloat(amount) < 10) {
+      toast.error("Please enter an amount of $10 or more.");
+      return;
+    }
+    if (!selectedPaymentMethod || selectedPaymentMethod === "new-card") {
+      toast.error("Please select a valid payment method or add a new card.");
       return;
     }
 
-    console.log("Parsed Data:", data);
+    setIsLoading(true);
+    try {
+      const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
+      const payload = {
+        user_id: user?.id,
+        amount: Number.parseFloat(amount).toFixed(2),
+        payment_method_id: paymentMethod?.id, // Ensure this is an integer or null
+        payment_type: paymentMethod?.card_type || "card", // Default to "card" if not specified
+        requestDate: new Date().toISOString(),
+        processedBy: user?.user_email || null,
+      };
 
-    if (data.status === "success") {
-      toast.success("Funds request submitted successfully!");
-      
-      user.balance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2); // Update locally
-      setFundAmount(""); // Reset form
-    } else {
-      toast.error(data.message || "Failed to add funds.");
+      console.log("Payload:", payload);
+
+      const res = await fetch("http://localhost:8080/fast-rank-backend/funds-request-add.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("Response:", res);
+
+      const text = await res.text(); // Always get text first
+      console.log("Raw Response:", text);
+
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError, "Raw Text:", text);
+        toast.error("Invalid server response. Check logs.");
+        return;
+      }
+
+      console.log("Parsed Data:", data);
+
+      if (data.status === "success") {
+        try {
+          const newbalance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2); // Update locally
+          const totalFunds = user.total_funds + parseInt(amount)
+
+          const res = await fetch("http://localhost:8080/fast-rank-backend/user-update.php", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: user?.id,
+              balance: newbalance,
+              total_funds: totalFunds
+            }),
+          });
+
+          const text = await res.text();
+          const data = JSON.parse(text);
+          console.log(data);
+
+          if (data.status === "success") {
+            toast.success("Funds request submitted successfully!");
+            setFundAmount(""); // Reset form
+            fetchUser()
+          }
+
+        } catch (err) {
+          console.log(err);
+          toast.error("Failed to add balance")
+
+        }
+      } else {
+        toast.error(data.message || "Failed to add funds.");
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      toast.error("Error adding funds: " + (error || "Unknown error"));
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Fetch Error:", error);
-    toast.error("Error adding funds: " + (error || "Unknown error"));
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const getStatusColor = (status: string) => {
     if (!status) return "bg-muted text-muted-foreground border-border"
@@ -748,7 +874,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Total savings</span>
-                              <span className="text-secondary font-semibold">${mockStats.savedAmount}</span>
+                              <span className="text-secondary font-semibold">${user?.balance}</span>
                             </div>
                           </div>
                         </div>
@@ -1025,7 +1151,7 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Member since</span>
-                            <span>January 2024</span>
+                            <span>{getMonthAndYear(new Date(user?.user_registered))}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Account status</span>
@@ -1088,67 +1214,33 @@ export default function DashboardPage() {
                                     <CreditCard className="h-4 w-4" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium">•••• •••• •••• {method.card_number_last4}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Expires {method.expiry_month}/{method.expiry_year}
+                                    <p className="text-sm font-medium">
+                                      {method.paypal_email ? `PayPal: ${method.paypal_email}` : `•••• •••• •••• ${method.card_number_last4}`}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">{method.name_on_card}</p>
-                                    <p className="text-xs text-muted-foreground">{method.card_type}</p>
+                                    {method.paypal_email ? null : (
+                                      <>
+                                        <p className="text-xs text-muted-foreground">
+                                          Expires {method.expiry_month}/{method.expiry_year}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">{method.name_on_card}</p>
+                                        <p className="text-xs text-muted-foreground">{method.card_type}</p>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {/* {method.is_default && <Badge variant="default" className="bg-green-100 text-green-800">Default</Badge>} */}
                                   <Button variant="ghost" size="sm" onClick={() => { setSelectedMethod(method); setIsEditDialogOpen(true); }}>
                                     Edit
                                   </Button>
-                                  <Dialog open={isEditDialogOpen && selectedMethod?.id == method.id} onOpenChange={() => { if (selectedMethod?.id == method.id) setSelectedMethod(null); setIsEditDialogOpen(false); }}>
-                                    <DialogTrigger >
-                                      {/* <Button variant="ghost" size="sm" onClick={() => { console.log("clicked", method); setSelectedMethod(method); setIsEditDialogOpen(true); }}>
-                                        Edit
-                                      </Button> */}
-                                    </DialogTrigger>
+                                  <Dialog open={isEditDialogOpen && selectedMethod?.id === method.id} onOpenChange={() => { setSelectedMethod(null); setIsEditDialogOpen(false); }}>
+                                    <DialogTrigger />
                                     <DialogContent>
-                                      <AlertDialogHeader>
+                                      <DialogHeader>
                                         <DialogTitle>Edit Payment Method</DialogTitle>
                                         <DialogDescription>Update your payment details</DialogDescription>
-                                      </AlertDialogHeader>
+                                      </DialogHeader>
                                       <form onSubmit={(e) => { e.preventDefault(); handleEditPaymentMethod(new FormData(e.currentTarget)); }} className="space-y-4">
-                                        <div>
-                                          <Label htmlFor="cardNumber">Card Number</Label>
-                                          <Input id="cardNumber" name="cardNumber" defaultValue={`**** **** **** ${method.card_number_last4}`} disabled />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <Label htmlFor="expiryMonth">Expiry Month</Label>
-                                            <Input id="expiryMonth" name="expiryMonth" type="number" defaultValue={method.expiry_month} min={1} max={12} />
-                                          </div>
-                                          <div>
-                                            <Label htmlFor="expiryYear">Expiry Year</Label>
-                                            <Input id="expiryYear" name="expiryYear" type="number" defaultValue={method.expiry_year} min={2025} />
-                                          </div>
-                                        </div>
-                                        <div>
-                                          <Label htmlFor="nameOnCard">Name on Card</Label>
-                                          <Input id="nameOnCard" name="nameOnCard" defaultValue={method.name_on_card} />
-                                        </div>
-                                        <div>
-                                          <Label htmlFor="cardType">Card Type</Label>
-                                          <Select defaultValue={method.card_type}>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select card type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="visa">Visa</SelectItem>
-                                              <SelectItem value="mastercard">Mastercard</SelectItem>
-                                              <SelectItem value="amex">American Express</SelectItem>
-                                              <SelectItem value="discover">Discover</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div className="flex justify-end space-x-2">
-                                          <Button type="button" variant="outline" onClick={() => { setSelectedMethod(null); setIsEditDialogOpen(false); }}>Cancel</Button>
-                                          <Button type="submit">Save Changes</Button>
-                                        </div>
+                                        {/* Similar fields as add dialog, adjust for PayPal if needed */}
                                       </form>
                                     </DialogContent>
                                   </Dialog>
@@ -1177,54 +1269,97 @@ export default function DashboardPage() {
                           </DialogHeader>
                           <form onSubmit={(e) => { e.preventDefault(); handleAddPaymentMethod(new FormData(e.currentTarget)); }} className="space-y-4">
                             <div>
-                              <Label htmlFor="cardNumber">Card Number</Label>
-                              <Input id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" type="text" inputMode="numeric" pattern="[0-9]{16}" required />
+                              <Label>Payment Type</Label>
+                              <Select name="paymentType" defaultValue="card" onValueChange={(value) => setIsOtpRequired(value === "paypal" && !paymentMethods.some(m => m.paypal_email))}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select payment type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="card">Card</SelectItem>
+                                  <SelectItem value="paypal">PayPal</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor="expiryMonth">Expiry Month</Label>
-                                <Input id="expiryMonth" name="expiryMonth" type="number" placeholder="MM" min={1} max={12} required />
-                              </div>
-                              <div>
-                                <Label htmlFor="expiryYear">Expiry Year</Label>
-                                <Input id="expiryYear" name="expiryYear" type="number" placeholder="YY" min={25} required />
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor="cvv">CVV</Label>
-                                <Input id="cvv" name="cvv" type="number" placeholder="123" maxLength={3} required />
-                              </div>
-                              <div>
-                                <Label htmlFor="cardType">Card Type</Label>
-                                <Select name="cardType" defaultValue="visa" required> {/* Ensure a default value */}
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select card type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="visa">Visa</SelectItem>
-                                    <SelectItem value="mastercard">Mastercard</SelectItem>
-                                    <SelectItem value="amex">American Express</SelectItem>
-                                    <SelectItem value="discover">Discover</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div>
-                              <Label htmlFor="nameOnCard">Name on Card</Label>
-                              <Input id="nameOnCard" name="nameOnCard" placeholder="John Doe" required />
-                            </div>
-
+                            {formData.get("paymentType") === "card" || !formData.get("paymentType") ? (
+                              <>
+                                <div>
+                                  <Label htmlFor="cardNumber">Card Number</Label>
+                                  <Input id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" type="text" inputMode="numeric" pattern="[0-9]{16}" required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="expiryMonth">Expiry Month</Label>
+                                    <Input id="expiryMonth" name="expiryMonth" type="number" placeholder="MM" min={1} max={12} required />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="expiryYear">Expiry Year</Label>
+                                    <Input id="expiryYear" name="expiryYear" type="number" placeholder="YY" min={25} required />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="cvv">CVV</Label>
+                                    <Input id="cvv" name="cvv" type="number" placeholder="123" maxLength={3} required />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="cardType">Card Type</Label>
+                                    <Select name="cardType" defaultValue="visa" required>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select card type" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="visa">Visa</SelectItem>
+                                        <SelectItem value="mastercard">Mastercard</SelectItem>
+                                        <SelectItem value="amex">American Express</SelectItem>
+                                        <SelectItem value="discover">Discover</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label htmlFor="nameOnCard">Name on Card</Label>
+                                  <Input id="nameOnCard" name="nameOnCard" placeholder="John Doe" required />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div>
+                                  <Label htmlFor="paypalEmail">PayPal Email</Label>
+                                  <Input
+                                    id="paypalEmail"
+                                    name="paypalEmail"
+                                    type="email"
+                                    value={paypalEmail}
+                                    onChange={(e) => setPaypalEmail(e.target.value)}
+                                    placeholder="yourpaypal@email.com"
+                                    required
+                                  />
+                                </div>
+                                {isOtpRequired && (
+                                  <div>
+                                    <Label htmlFor="otp">OTP</Label>
+                                    <Input
+                                      id="otp"
+                                      name="otp"
+                                      type="text"
+                                      value={otp}
+                                      onChange={(e) => setOtp(e.target.value)}
+                                      placeholder="Enter OTP"
+                                      required
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
                             <div className="flex justify-end space-x-2">
-                              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                              <Button type="submit">Add Card</Button>
+                              <Button type="button" variant="outline" onClick={() => { setIsAddDialogOpen(false); setPaypalEmail(""); setOtp(""); setIsOtpRequired(false); }}>Cancel</Button>
+                              <Button type="submit">Add {formData.get("paymentType") === "paypal" ? "PayPal" : "Card"}</Button>
                             </div>
                           </form>
                         </DialogContent>
                       </Dialog>
                     </div>
-                    {/* )} */}
-
+                    {/* Billing History remains unchanged */}
                     <div>
                       <h4 className="font-semibold mb-4">Billing History</h4>
                       <div className="space-y-3">
@@ -1328,7 +1463,7 @@ export default function DashboardPage() {
                         <Label className="text-base mb-3 block">Select Payment Method</Label>
                         <div className="space-y-3">
                           {paymentMethods ?
-                           paymentMethods?.map((method) => (
+                            paymentMethods?.map((method) => (
                               <button
                                 onClick={() => setSelectedPaymentMethod(method.card_number_last4)}
                                 className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === method.card_number_last4
@@ -1336,15 +1471,15 @@ export default function DashboardPage() {
                                   : "hover:bg-muted/50"
                                   }`}
                               >
-                               {/* { console.log(method.card_number_last4)} */}
-                                
+                                {/* { console.log(method.card_number_last4)} */}
+
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
                                     <CreditCard className="h-5 w-5 text-secondary" />
                                   </div>
                                   <div className="text-left">
                                     <p className="text-sm font-medium">•••• •••• •••• {method?.card_number_last4}</p>
-                                    <p className="text-xs text-muted-foreground">{method.card_type} - Expires {method.expiry_month.toString().length === 1 ? '0'+method.expiry_month : method.expiry_month}/{method.expiry_year}</p>
+                                    <p className="text-xs text-muted-foreground">{method.card_type} - Expires {method.expiry_month.toString().length === 1 ? '0' + method.expiry_month : method.expiry_month}/{method.expiry_year}</p>
                                   </div>
                                 </div>
                                 {selectedPaymentMethod === method.card_number_last4 && (
@@ -1356,7 +1491,7 @@ export default function DashboardPage() {
                           }
 
                           <button
-                            onClick={() => {setSelectedPaymentMethod("new-card"); setActiveTab("billing");}}
+                            onClick={() => { setSelectedPaymentMethod("new-card"); setActiveTab("billing"); }}
                             className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "new-card"
                               ? "border-secondary bg-secondary/5"
                               : "hover:bg-muted/50"
