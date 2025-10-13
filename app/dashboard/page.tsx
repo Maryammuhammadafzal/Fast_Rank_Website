@@ -137,6 +137,7 @@ interface PaymentMethod {
   expiry_month: number;
   expiry_year: number;
   card_type: string;
+  paypal_email: string;
   name_on_card: string;
   is_default: boolean;
   created_at: string;
@@ -157,6 +158,7 @@ export default function DashboardPage() {
   const [paypalEmail, setPaypalEmail] = useState(""); // New state for PayPal email
   const [otp, setOtp] = useState(""); // New state for OTP
   const [isOtpRequired, setIsOtpRequired] = useState(false);
+  const [paymentType, setPaymentType] = useState("card"); // New state for payment type
 
   // Function to get month and year
   const getMonthAndYear = (date: Date | string | undefined) => {
@@ -1270,7 +1272,10 @@ export default function DashboardPage() {
                           <form onSubmit={(e) => { e.preventDefault(); handleAddPaymentMethod(new FormData(e.currentTarget)); }} className="space-y-4">
                             <div>
                               <Label>Payment Type</Label>
-                              <Select name="paymentType" defaultValue="card" onValueChange={(value) => setIsOtpRequired(value === "paypal" && !paymentMethods.some(m => m.paypal_email))}>
+                              <Select name="paymentType" value={paymentType} onValueChange={(value) => {
+                                setPaymentType(value);
+                                setIsOtpRequired(value === "paypal" && !paymentMethods.some(m => m.paypal_email));
+                              }}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select payment type" />
                                 </SelectTrigger>
@@ -1280,7 +1285,7 @@ export default function DashboardPage() {
                                 </SelectContent>
                               </Select>
                             </div>
-                            {formData.get("paymentType") === "card" || !formData.get("paymentType") ? (
+                            {paymentType === "card" || paymentType === "" ? (
                               <>
                                 <div>
                                   <Label htmlFor="cardNumber">Card Number</Label>
@@ -1353,7 +1358,7 @@ export default function DashboardPage() {
                             )}
                             <div className="flex justify-end space-x-2">
                               <Button type="button" variant="outline" onClick={() => { setIsAddDialogOpen(false); setPaypalEmail(""); setOtp(""); setIsOtpRequired(false); }}>Cancel</Button>
-                              <Button type="submit">Add {formData.get("paymentType") === "paypal" ? "PayPal" : "Card"}</Button>
+                              <Button type="submit">Add {paymentType === "paypal" ? "PayPal" : "Card"}</Button>
                             </div>
                           </form>
                         </DialogContent>
