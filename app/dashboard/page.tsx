@@ -141,6 +141,16 @@ interface PaymentMethod {
   name_on_card: string;
   is_default: boolean;
   created_at: string;
+  payment_type: string;
+}
+
+interface FundRequest {
+  id: number;
+  requestDate: string;
+  payment_type: string;
+  card_number_last4: string;
+  paypalEmail: string;
+  amount: string
 }
 
 export default function DashboardPage() {
@@ -150,6 +160,8 @@ export default function DashboardPage() {
   const [fundAmount, setFundAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card-4242")
   const [user, setUser] = useState<User | null>(null);
+  const [fundRequest, setFundRequest] = useState<FundRequest | []>([]);
+  const [viewAllFunds, setViewAllFunds] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
@@ -182,6 +194,31 @@ export default function DashboardPage() {
     const month = months[d.getMonth()];
     const year = d.getFullYear();
     return `${month} ${year}`; // e.g., "October 2025"
+  };
+  // Function to get month and year
+  const getFullTimeAndDate = (date: Date | string | undefined) => {
+    if (!date) return "Unknown"; // Handle undefined user_registered
+    const d = new Date(date); // Convert to Date object
+    if (isNaN(d.getTime())) return "Invalid Date"; // Handle invalid date
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    const day = d.getDate()
+    const time = d.toLocaleTimeString().slice(0, 5)
+    return `${month} ${day}, ${year} at ${time}`; // e.g., "October 2025"
   };
   // Mock data for billing history (replace with fetch from backend)
   const billingHistory = [
@@ -349,11 +386,13 @@ export default function DashboardPage() {
         toast.error("Please enter your PayPal email.");
         return;
       }
-      if (isOtpRequired) {
-        if (!otp) {
-          toast.error("Please enter the OTP.");
-          return;
-        }
+      if (otp) {
+        console.log(paypalEmail, otp);
+
+        // if (!otp) {
+        //   toast.error("Please enter the OTP.");
+        //   return;
+        // }
         // Verify OTP with backend
         const verifyResponse = await fetch("http://localhost:8080/fast-rank-backend/verify-otp.php", {
           method: "POST",
@@ -375,6 +414,8 @@ export default function DashboardPage() {
         });
         const otpData = await otpResponse.json();
         if (otpData.status === "success") {
+          console.log(otpData.data);
+
           toast.success("OTP sent to your PayPal email. Please enter it.");
           setIsOtpRequired(true);
           return;
@@ -426,7 +467,7 @@ export default function DashboardPage() {
     if (!selectedMethod) return;
     const updatedMethod = {
       id: selectedMethod.id,
-      user_id: 13,
+      user_id: user?.id,
       card_number: formData.get("cardNumber") as string,
       expiry_month: parseInt(formData.get("expiryMonth") as string),
       expiry_year: parseInt(formData.get("expiryYear") as string),
@@ -492,6 +533,43 @@ export default function DashboardPage() {
     }
   };
 
+  const loadFundRequests = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/fast-rank-backend/funds-request.php', {
+        method: 'GET'
+      });
+
+      const data = await res.json();
+      console.log(data.data);
+      if (data.status === "success") {
+        const userId = user?.id?.toString() || localStorage.getItem('user_id')?.toString() || null;
+        console.log("Filtering with userId:", userId); // Debug log
+
+        const savedRequests = data?.data || [];
+        const requests = savedRequests.filter((req: any) => {
+          console.log("Comparing:", req.user_id?.toString(), userId); // Debug log
+          return req.user_id?.toString() === userId;
+        });
+        console.log("Filtered requests:", requests);
+        if (!viewAllFunds) {
+          setFundRequest(requests.slice(0, 3))
+        } else {
+          setFundRequest(requests);
+        }
+      } else {
+        setFundRequest([]);
+      }
+    } catch (error) {
+      console.error("Error loading fund requests:", error);
+      setFundRequest([]);
+    }
+  };
+
+  useEffect(() => {
+    // Load existing fund requests
+    loadFundRequests();
+  }, [user?.id, viewAllFunds]);
+
   const handleAddFunds = async (amount: string, paymentMethodId?: string) => {
     if (!user?.id) {
       toast.error("User not authenticated. Please log in.");
@@ -508,14 +586,21 @@ export default function DashboardPage() {
 
     setIsLoading(true);
     try {
-      const paymentMethod = paymentMethods.find((m) => m.card_number_last4 === selectedPaymentMethod);
+      const paymentMethod = paymentMethods.find((m) =>
+        m.payment_type === "card"
+          ? m.card_number_last4 === selectedPaymentMethod
+          : m.paypal_email === selectedPaymentMethod
+      );
+
       const payload = {
         user_id: user?.id,
         amount: Number.parseFloat(amount).toFixed(2),
-        payment_method_id: paymentMethod?.id, // Ensure this is an integer or null
-        payment_type: paymentMethod?.card_type || "card", // Default to "card" if not specified
+        payment_method_id: paymentMethod?.id || null, // Use id if available, otherwise null
+        payment_type: paymentMethod?.payment_type || "card", // Use payment_type from method, default to "card"
         requestDate: new Date().toISOString(),
         processedBy: user?.user_email || null,
+        paypalEmail: paymentMethod?.paypal_email,
+        card_number_last4: paymentMethod?.card_number_last4,
       };
 
       console.log("Payload:", payload);
@@ -545,7 +630,7 @@ export default function DashboardPage() {
       if (data.status === "success") {
         try {
           const newbalance = (parseFloat(user.balance || "0") + parseFloat(amount)).toFixed(2); // Update locally
-          const totalFunds = user.total_funds + parseInt(amount)
+          const totalFunds = parseFloat((user.total_funds ?? "0").toString()) + parseFloat(amount.toString());
 
           const res = await fetch("http://localhost:8080/fast-rank-backend/user-update.php", {
             method: "PUT",
@@ -553,7 +638,7 @@ export default function DashboardPage() {
             body: JSON.stringify({
               id: user?.id,
               balance: newbalance,
-              total_funds: totalFunds
+              total_funds: totalFunds.toFixed(2)
             }),
           });
 
@@ -563,8 +648,9 @@ export default function DashboardPage() {
 
           if (data.status === "success") {
             toast.success("Funds request submitted successfully!");
-            setFundAmount(""); // Reset form
+            loadFundRequests()
             fetchUser()
+            setFundAmount(""); // Reset form
           }
 
         } catch (err) {
@@ -1057,19 +1143,19 @@ export default function DashboardPage() {
                     <CardContent className="space-y-4">
                       <div>
                         <label className="text-sm font-medium">Full Name</label>
-                        <p className="text-sm text-muted-foreground">John Doe</p>
+                        <p className="text-sm text-muted-foreground">{user?.user_nicename}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Email</label>
-                        <p className="text-sm text-muted-foreground">john.doe@example.com</p>
+                        <p className="text-sm text-muted-foreground">{user?.user_email}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Member Since</label>
-                        <p className="text-sm text-muted-foreground">January 2024</p>
+                        <p className="text-sm text-muted-foreground">{getMonthAndYear(new Date(user?.user_registered))}</p>
                       </div>
-                      <Button variant="outline" className="w-full bg-transparent">
+                      {/* <Button variant="outline" className="w-full bg-transparent">
                         Edit Profile
-                      </Button>
+                      </Button> */}
                     </CardContent>
                   </Card>
 
@@ -1350,7 +1436,7 @@ export default function DashboardPage() {
                                       value={otp}
                                       onChange={(e) => setOtp(e.target.value)}
                                       placeholder="Enter OTP"
-                                      required
+                                    // required
                                     />
                                   </div>
                                 )}
@@ -1467,36 +1553,62 @@ export default function DashboardPage() {
                       <div>
                         <Label className="text-base mb-3 block">Select Payment Method</Label>
                         <div className="space-y-3">
-                          {paymentMethods ?
-                            paymentMethods?.map((method) => (
-                              <button
-                                onClick={() => setSelectedPaymentMethod(method.card_number_last4)}
-                                className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === method.card_number_last4
-                                  ? "border-secondary bg-secondary/5"
-                                  : "hover:bg-muted/50"
-                                  }`}
-                              >
-                                {/* { console.log(method.card_number_last4)} */}
+                          {paymentMethods ? (
+                            paymentMethods.map((method) => {
+                              const isSelected =
+                                method?.payment_type === "card"
+                                  ? selectedPaymentMethod === method.card_number_last4
+                                  : selectedPaymentMethod === method.paypal_email;
 
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
-                                    <CreditCard className="h-5 w-5 text-secondary" />
+                              return (
+                                <button
+                                  key={method.id || method.paypal_email} // Add a unique key for React
+                                  onClick={() =>
+                                    method.payment_type === "card"
+                                      ? setSelectedPaymentMethod(method.card_number_last4)
+                                      : setSelectedPaymentMethod(method.paypal_email)
+                                  }
+                                  className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${isSelected
+                                    ? "border-secondary bg-secondary/5"
+                                    : "hover:bg-muted/50"
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-secondary/10 rounded flex items-center justify-center">
+                                      <CreditCard className="h-5 w-5 text-secondary" />
+                                    </div>
+                                    <div className="text-left">
+                                      {method.payment_type === "card" ? (
+                                        <>
+                                          <p className="text-sm font-medium">•••• •••• •••• {method.card_number_last4}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {method.card_type} - Expires{" "}
+                                            {method.expiry_month.toString().padStart(2, "0")}/{method.expiry_year}
+                                          </p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <p className="text-sm font-medium">PayPal</p>
+                                          <p className="text-xs text-muted-foreground">{method.paypal_email}</p>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="text-left">
-                                    <p className="text-sm font-medium">•••• •••• •••• {method?.card_number_last4}</p>
-                                    <p className="text-xs text-muted-foreground">{method.card_type} - Expires {method.expiry_month.toString().length === 1 ? '0' + method.expiry_month : method.expiry_month}/{method.expiry_year}</p>
-                                  </div>
-                                </div>
-                                {selectedPaymentMethod === method.card_number_last4 && (
-                                  <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
-                                )}
-                              </button>
-
-                            )) : (<p className="text-muted-foreground">No payment methods added yet.</p>)
-                          }
+                                  {isSelected && (
+                                    <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <p className="text-muted-foreground">No payment methods added yet.</p>
+                          )}
 
                           <button
-                            onClick={() => { setSelectedPaymentMethod("new-card"); setActiveTab("billing"); }}
+                            onClick={() => {
+                              setSelectedPaymentMethod("new-card");
+                              setActiveTab("billing");
+                            }}
                             className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${selectedPaymentMethod === "new-card"
                               ? "border-secondary bg-secondary/5"
                               : "hover:bg-muted/50"
@@ -1511,9 +1623,9 @@ export default function DashboardPage() {
                                 <p className="text-xs text-muted-foreground">Use a different payment method</p>
                               </div>
                             </div>
-                            {/* {selectedPaymentMethod === "new-card" && (
+                            {selectedPaymentMethod === "new-card" && (
                               <Badge className="bg-secondary/10 text-secondary border-secondary/20">Selected</Badge>
-                            )} */}
+                            )}
                           </button>
                         </div>
                       </div>
@@ -1560,58 +1672,41 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                            <ArrowUpCircle className="h-5 w-5 text-accent-foreground" />
+                      {fundRequest && fundRequest.map((fund: FundRequest) => (
+                        <div key={fund.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                              <ArrowUpCircle className="h-5 w-5 text-accent-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Funds Added</p>
+                              <p className="text-xs text-muted-foreground">{getFullTimeAndDate(fund.requestDate)}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">Funds Added</p>
-                            <p className="text-xs text-muted-foreground">January 10, 2024 at 2:30 PM</p>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-accent-foreground">+${fund.amount}</p>
+                            {fund.payment_type === "paypal" ? (
+                              <p className="text-xs text-muted-foreground">
+                                {fund.payment_type} •••• {fund.paypalEmail?.split('@')[0].slice(-4) || 'N/A'}
+                                @{fund.paypalEmail?.split('@')[1] || 'email.com'}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                {fund.payment_type} ••{fund.card_number_last4}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-accent-foreground">+$500.00</p>
-                          <p className="text-xs text-muted-foreground">Visa ••4242</p>
-                        </div>
-                      </div>
+                      ))}
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                            <ArrowUpCircle className="h-5 w-5 text-accent-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Funds Added</p>
-                            <p className="text-xs text-muted-foreground">January 5, 2024 at 10:15 AM</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-accent-foreground">+$1,000.00</p>
-                          <p className="text-xs text-muted-foreground">Visa ••4242</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                            <ArrowUpCircle className="h-5 w-5 text-accent-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Funds Added</p>
-                            <p className="text-xs text-muted-foreground">January 1, 2024 at 9:00 AM</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-accent-foreground">+$1,000.00</p>
-                          <p className="text-xs text-muted-foreground">Visa ••4242</p>
-                        </div>
-                      </div>
                     </div>
-
-                    <Button variant="outline" className="w-full mt-4 bg-transparent">
-                      View All Transactions
-                    </Button>
+                    {
+                      fundRequest?.length > 2 && (
+                        <Button variant="outline" onClick={() => { setViewAllFunds(!viewAllFunds) }} className="w-full mt-4 bg-transparent">
+                          {viewAllFunds ? " View Less Transactions" : " View All Transactions"}
+                        </Button>
+                      )
+                    }
                   </CardContent>
                 </Card>
               </TabsContent>

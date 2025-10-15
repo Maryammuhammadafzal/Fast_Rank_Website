@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -111,7 +111,7 @@ interface Blogs {
   post_author: string,
   post_type: string,
   post_status: string,
-  post_date : string,
+  post_date: string,
   publishDate: string,
   post_modified: string,
   views: number,
@@ -129,7 +129,10 @@ export default function BlogManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-
+  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const featuredImageInputRef = useRef<HTMLInputElement>(null);
+  const [isFeaturedImageDialogOpen, setIsFeaturedImageDialogOpen] = useState(false);
 
   const loadPosts = async () => {
     try {
@@ -197,7 +200,7 @@ export default function BlogManagement() {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id : postId
+            id: postId
           }),
         })
         const text = await res.text();
@@ -216,7 +219,7 @@ export default function BlogManagement() {
   const handleAddPost = async (formData: FormData) => {
     const post_title = formData.get("title") as string
     console.log(formData.get("featured"));
-    
+
     const newPost = {
       post_title,
       slug: generateSlug(post_title),
@@ -228,6 +231,8 @@ export default function BlogManagement() {
       publishDate: formData.get("status") === "published" ? new Date().toISOString().split("T")[0] : null,
       post_date: new Date().toISOString().split("T")[0],
       post_modified: new Date().toISOString().split("T")[0],
+      post_image: formData.get("post_image") || undefined,
+      imageUrl: formData.get("featuredImageUrl") || undefined,
       views: 0,
       featured: formData.get("featured") === "on" ? "on " : "off",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
@@ -244,7 +249,7 @@ export default function BlogManagement() {
 
       const text = await res.text();
       const data = JSON.parse(text);
-      
+
       if (data.status === 'success') {
         setIsAddDialogOpen(false)
         toast.success('Post Added Successfully');
@@ -284,7 +289,7 @@ export default function BlogManagement() {
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
     }
     console.log(updatedPosts);
-    
+
 
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/posts-update.php", {
@@ -298,7 +303,7 @@ export default function BlogManagement() {
 
       const text = await res.text();
       console.log(text);
-      
+
       const data = JSON.parse(text);
       console.log(data);
       if (data.status === "success") {
@@ -310,6 +315,30 @@ export default function BlogManagement() {
     } catch (error) {
       toast.error(`Error Updating Post ${error}`);
 
+    }
+  }
+
+  // Featured image upload handler
+  const handleFeaturedImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+
+    if (!file) return
+
+    // Create a URL for the uploaded file
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result as string
+
+      setFeaturedImageUrl(result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const insertFeaturedImage = () => {
+    if (featuredImageUrl) {
+      setFormData({ ...formData, post_image: featuredImageUrl })
+      setFeaturedImageUrl("")
+      setIsFeaturedImageDialogOpen(false)
     }
   }
 
@@ -466,6 +495,82 @@ export default function BlogManagement() {
               </Dialog>
             </div>
 
+            {/* Featured Image Dialog */}
+            <Dialog open={isFeaturedImageDialogOpen} onOpenChange={setIsFeaturedImageDialogOpen}>
+              <DialogContent className="bg-gray-800 border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Featured Image</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-white">Upload Featured Image</Label>
+                    <input
+                      ref={featuredImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFeaturedImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => featuredImageInputRef.current?.click()}
+                      className="w-full mt-2 border-gray-600 text-gray-300"
+                    >
+                      Choose File
+                    </Button>
+                  </div>
+
+                  <div className="text-center text-gray-400">or</div>
+
+                  <div>
+                    <Label htmlFor="featuredImageUrl" className="text-white">
+                      Image URL
+                    </Label>
+                    <Input
+                      id="featuredImageUrl"
+                      value={featuredImageUrl}
+                      onChange={(e) => setFeaturedImageUrl(e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+
+                  {featuredImageUrl && (
+                    <div>
+                      <Label className="text-white">Preview</Label>
+                      <div className="mt-2 border border-gray-600 rounded p-2">
+                        <img
+                          src={featuredImageUrl || "/placeholder.svg"}
+                          alt="Featured"
+                          className="max-w-full h-auto max-h-48 object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsFeaturedImageDialogOpen(false)}
+                      className="border-gray-600 text-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={insertFeaturedImage}
+                      disabled={!featuredImageUrl}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Set Featured Image
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card className="bg-white border-gray-200">
@@ -595,7 +700,7 @@ export default function BlogManagement() {
                                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
                                   Featured
                                 </Badge>
-                              ): ""}
+                              ) : ""}
                             </div>
                             <p className="text-sm text-gray-600 line-clamp-2">{post.post_excerpt}</p>
                             <div className="flex flex-wrap gap-1">
@@ -605,7 +710,7 @@ export default function BlogManagement() {
                                   {tag}
                                 </Badge>
                               ))}
-                              
+
                               {post.tags.toString().split(',').length > 3 && (
                                 <Badge variant="outline" className="text-xs">
                                   +{post.tags.toString().split(',').length - 3}
@@ -715,7 +820,7 @@ export default function BlogManagement() {
                           <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
                             Featured
                           </Badge>
-                        ): ""}
+                        ) : ""}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                         <span>By {selectedPost.post_author}</span>
