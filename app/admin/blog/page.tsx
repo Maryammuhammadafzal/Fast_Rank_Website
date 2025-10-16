@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { ImageIcon } from "lucide-react"
+import Image from "next/image"
 
 // Mock blog data
 const mockBlogPosts = [
@@ -129,10 +131,26 @@ export default function BlogManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
+  const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
+  const hiddenFileInputRef = useRef<HTMLInputElement>(null);
   const featuredImageInputRef = useRef<HTMLInputElement>(null);
   const [isFeaturedImageDialogOpen, setIsFeaturedImageDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<{
+    post_image: File | string | null;
+    // Add other form fields as needed
+    title?: string;
+    excerpt?: string;
+    content?: string;
+    author?: string;
+    category?: string;
+    status?: string;
+    tags?: string;
+    featured?: string;
+  }>({
+    post_image: null, // Initial value
+    // Initialize other fields if required
+  });
 
   const loadPosts = async () => {
     try {
@@ -216,10 +234,9 @@ export default function BlogManagement() {
     }
   }
 
+  // handleAddPost and handleEditPost for File Upload
   const handleAddPost = async (formData: FormData) => {
-    const post_title = formData.get("title") as string
-    console.log(formData.get("featured"));
-
+    const post_title = formData.get("title") as string;
     const newPost = {
       post_title,
       slug: generateSlug(post_title),
@@ -228,48 +245,50 @@ export default function BlogManagement() {
       post_author: formData.get("author") as string,
       post_type: formData.get("category") as string,
       post_status: formData.get("status") as string,
-      publishDate: formData.get("status") === "published" ? new Date().toISOString().split("T")[0] : null,
+      publishDate:
+        formData.get("status") === "published" ? new Date().toISOString().split("T")[0] : null,
       post_date: new Date().toISOString().split("T")[0],
       post_modified: new Date().toISOString().split("T")[0],
-      post_image: formData.get("post_image") || undefined,
-      imageUrl: formData.get("featuredImageUrl") || undefined,
       views: 0,
-      featured: formData.get("featured") === "on" ? "on " : "off",
+      featured: formData.get("featured") === "on" ? "on" : "off",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
+    };
+
+    // Handle file upload
+    const formDataToSend = new FormData();
+    Object.entries(newPost).forEach(([key, value]) => {
+      formDataToSend.append(key, value as string);
+    });
+    if (formData.post_image instanceof File) {
+      formDataToSend.append("post_image", formData.post_image);
     }
 
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/posts-add.php", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newPost),
+        body: formDataToSend, // Use FormData for file upload
       });
 
       const text = await res.text();
       const data = JSON.parse(text);
 
-      if (data.status === 'success') {
-        setIsAddDialogOpen(false)
-        toast.success('Post Added Successfully');
-        // window.location.reload();
-        loadPosts()
+      if (data.status === "success") {
+        setIsAddDialogOpen(false);
+        toast.success("Post Added Successfully");
+        loadPosts();
       } else {
-        toast.error('Failed to add Post');
+        toast.error("Failed to add Post");
       }
-
     } catch (error) {
       toast.error(`Failed Post Adding`);
       console.error(`Failed Post Adding: ${error}`);
-
     }
-  }
+  };
 
   const handleEditPost = async (formData: FormData) => {
-    if (!selectedPost) return
+    if (!selectedPost) return;
 
-    const post_title = formData.get("title") as string
+    const post_title = formData.get("title") as string;
     const updatedPosts = {
       id: selectedPost.id,
       post_title,
@@ -287,19 +306,24 @@ export default function BlogManagement() {
       post_date: new Date().toISOString().split("T")[0],
       featured: formData.get("featured") === "on" ? "on" : "off",
       tags: (formData.get("tags") as string).split(",").map((tag) => tag.trim()),
-    }
-    console.log(updatedPosts);
+    };
 
+    // Handle file upload
+    const formDataToSend = new FormData();
+    Object.entries(updatedPosts).forEach(([key, value]) => {
+      formDataToSend.append(key, value as string);
+    });
+    if (formData.post_image instanceof File) {
+      formDataToSend.append("post_image", formData.post_image);
+    } else if (!formData.post_image) {
+      formDataToSend.append("post_image", ""); // Signal to remove image if none
+    }
 
     try {
       const res = await fetch("http://localhost:8080/fast-rank-backend/posts-update.php", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedPosts),
+        body: formDataToSend, // Use FormData for file upload
       });
-
 
       const text = await res.text();
       console.log(text);
@@ -307,40 +331,63 @@ export default function BlogManagement() {
       const data = JSON.parse(text);
       console.log(data);
       if (data.status === "success") {
-        toast.success('Post Updated Successfully');
-        setIsEditDialogOpen(false)
-        setSelectedPost(null)
+        toast.success("Post Updated Successfully");
+        setIsEditDialogOpen(false);
+        setSelectedPost(null);
         loadPosts();
       }
     } catch (error) {
       toast.error(`Error Updating Post ${error}`);
-
     }
-  }
+  };
 
-  // Featured image upload handler
+  // Featured image upload handler (keep existing dialog logic, update to set file)
   const handleFeaturedImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!file) return
-
-    // Create a URL for the uploaded file
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const result = event.target?.result as string
-
-      setFeaturedImageUrl(result)
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, or WebP image.");
+      return;
     }
-    reader.readAsDataURL(file)
-  }
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 5MB.");
+      return;
+    }
 
+    setFeaturedImageFile(file); // Store the file
+    if (hiddenFileInputRef.current) {
+      hiddenFileInputRef.current.files = e.target.files; // Sync with hidden input
+    }
+  };
+
+  // Insert featured image (update to clear and sync)
   const insertFeaturedImage = () => {
-    if (featuredImageUrl) {
-      setFormData({ ...formData, post_image: featuredImageUrl })
-      setFeaturedImageUrl("")
-      setIsFeaturedImageDialogOpen(false)
+    if (featuredImageFile && hiddenFileInputRef.current) {
+      console.log(featuredImageFile);
+      console.log(hiddenFileInputRef.current);
+      
+      setFeaturedImageUrl("");
+      setIsFeaturedImageDialogOpen(false);
     }
-  }
+  };
+
+  // Open featured image dialog (keep existing)
+  const openFeaturedImageDialog = () => {
+    setFeaturedImageUrl(formData.post_image);
+    setIsFeaturedImageDialogOpen(true);
+  };
+
+  // Remove featured image
+  const removeFeaturedImage = () => {
+    setFeaturedImageFile(null);
+    if (hiddenFileInputRef.current) {
+      hiddenFileInputRef.current.value = ""; // Clear hidden input
+    }
+    setFormData({ ...formData, post_image: "" }); // Clear form data image
+  };
 
   const categories = ["SEO", "Link Building", "Content Marketing", "Analytics", "Digital Marketing", "Guest Posting"]
 
@@ -359,6 +406,8 @@ export default function BlogManagement() {
                 <h1 className="text-3xl font-bold text-gray-900">Blog Management</h1>
                 <p className="text-gray-600">Post, edit, and delete blog articles</p>
               </div>
+
+
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gray-900 text-white hover:bg-gray-800">
@@ -399,6 +448,110 @@ export default function BlogManagement() {
                         className="bg-white border-gray-300"
                       />
                     </div>
+                    {/* Featured Image Section */}
+                    {/* // Add this hidden input in both dialogs (Add and Edit) before the form */}
+                    <input
+                      type="file"
+                      ref={hiddenFileInputRef}
+                      name="post_image"
+                      onChange={handleFeaturedImageUpload}
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                    />
+
+{/* // Update the Featured Image Section in both dialogs */}
+                    <div>
+                      <Label className="text-gray-700">Featured Image</Label>
+                      <div className="flex items-center gap-4 mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={openFeaturedImageDialog}
+                          className="border-gray-300 text-gray-700 bg-transparent"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          {formData.post_image || featuredImageFile ? "Change Featured Image" : "Add Featured Image"}
+                        </Button>
+                        {(formData.post_image || featuredImageFile) && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeFeaturedImage}
+                            className="border-red-600 text-red-400"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      {(formData.post_image || featuredImageFile) && (
+                        <div className="mt-2">
+                          <img
+                            src={
+                              featuredImageFile
+                                ? URL.createObjectURL(featuredImageFile)
+                                : formData.post_image || "/placeholder.svg"
+                            }
+                            alt="Featured"
+                            className="w-32 h-20 object-cover rounded border border-gray-300"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+{/* // Ensure FeaturedImageDialog uses the hidden input */}
+                    <Dialog open={isFeaturedImageDialogOpen} onOpenChange={setIsFeaturedImageDialogOpen}>
+                      <DialogContent className="max-w-md bg-white">
+                        <DialogHeader>
+                          <DialogTitle>Upload Featured Image</DialogTitle>
+                          <DialogDescription>Choose an image for your post.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <input
+                            type="file"
+                            ref={featuredImageInputRef}
+                            onChange={handleFeaturedImageUpload}
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => featuredImageInputRef.current?.click()}
+                            className="w-full bg-gray-900 text-white hover:bg-gray-800"
+                          >
+                            <ImageIcon className="w-4 h-4 mr-2" /> Select Image
+                          </Button>
+                          {featuredImageFile && (
+                            <div className="relative">
+                              <img
+                                src={URL.createObjectURL(featuredImageFile)}
+                                alt="Preview"
+                                className="w-full h-48 object-cover rounded"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setFeaturedImageFile(null);
+                                  if (hiddenFileInputRef.current) hiddenFileInputRef.current.value = "";
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          )}
+                          <Button
+                            type="button"
+                            onClick={insertFeaturedImage}
+                            disabled={!featuredImageFile}
+                            className="w-full bg-gray-900 text-white hover:bg-gray-800"
+                          >
+                            Insert Image
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
                     <div>
                       <Label htmlFor="content" className="text-gray-700">
                         Content
@@ -494,82 +647,6 @@ export default function BlogManagement() {
                 </DialogContent>
               </Dialog>
             </div>
-
-            {/* Featured Image Dialog */}
-            <Dialog open={isFeaturedImageDialogOpen} onOpenChange={setIsFeaturedImageDialogOpen}>
-              <DialogContent className="bg-gray-800 border-gray-700">
-                <DialogHeader>
-                  <DialogTitle className="text-white">Featured Image</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-white">Upload Featured Image</Label>
-                    <input
-                      ref={featuredImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFeaturedImageUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => featuredImageInputRef.current?.click()}
-                      className="w-full mt-2 border-gray-600 text-gray-300"
-                    >
-                      Choose File
-                    </Button>
-                  </div>
-
-                  <div className="text-center text-gray-400">or</div>
-
-                  <div>
-                    <Label htmlFor="featuredImageUrl" className="text-white">
-                      Image URL
-                    </Label>
-                    <Input
-                      id="featuredImageUrl"
-                      value={featuredImageUrl}
-                      onChange={(e) => setFeaturedImageUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-
-                  {featuredImageUrl && (
-                    <div>
-                      <Label className="text-white">Preview</Label>
-                      <div className="mt-2 border border-gray-600 rounded p-2">
-                        <img
-                          src={featuredImageUrl || "/placeholder.svg"}
-                          alt="Featured"
-                          className="max-w-full h-auto max-h-48 object-contain"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsFeaturedImageDialogOpen(false)}
-                      className="border-gray-600 text-gray-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={insertFeaturedImage}
-                      disabled={!featuredImageUrl}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Set Featured Image
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -871,137 +948,47 @@ export default function BlogManagement() {
             {/* Edit Post Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
-                <DialogHeader>
-                  <DialogTitle className="text-gray-900">Edit Blog Post</DialogTitle>
-                  <DialogDescription className="text-gray-600">Update blog post information</DialogDescription>
-                </DialogHeader>
                 {selectedPost && (
                   <form action={handleEditPost} className="space-y-4">
+                    {/* ... Other form fields ... */}
                     <div>
-                      <Label htmlFor="edit-title" className="text-gray-700">
-                        Title
-                      </Label>
-                      <Input
-                        id="edit-title"
-                        name="title"
-                        defaultValue={selectedPost.post_title}
-                        required
-                        className="bg-white border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-excerpt" className="text-gray-700">
-                        Excerpt
-                      </Label>
-                      <Textarea
-                        id="edit-excerpt"
-                        name="excerpt"
-                        defaultValue={selectedPost.post_excerpt}
-                        rows={2}
-                        required
-                        className="bg-white border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-content" className="text-gray-700">
-                        Content
-                      </Label>
-                      <Textarea
-                        id="edit-content"
-                        name="content"
-                        defaultValue={selectedPost.post_content}
-                        rows={8}
-                        required
-                        className="bg-white border-gray-300"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-author" className="text-gray-700">
-                          Author
-                        </Label>
-                        <Input
-                          id="edit-author"
-                          name="author"
-                          defaultValue={selectedPost.post_author}
-                          required
-                          className="bg-white border-gray-300"
-                        />
+                      <Label className="text-gray-700">Featured Image</Label>
+                      <div className="flex items-center gap-4 mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={openFeaturedImageDialog}
+                          className="border-gray-300 text-gray-700 bg-transparent"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          {formData.post_image ? "Change Featured Image" : "Add Featured Image"}
+                        </Button>
+                        {formData.post_image && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeFeaturedImage}
+                            className="border-red-600 text-red-400"
+                          >
+                            Remove
+                          </Button>
+                        )}
                       </div>
-                      <div>
-                        <Label htmlFor="edit-category" className="text-gray-700">
-                          Category
-                        </Label>
-                        <Select name="category" defaultValue={selectedPost.post_type}>
-                          <SelectTrigger className="bg-white border-gray-300">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white">
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {formData.post_image && (
+                        <div className="mt-2">
+                          <img
+                            src={
+                              formData.post_image instanceof File
+                                ? URL.createObjectURL(formData.post_image)
+                                : formData.post_image || "/placeholder.svg"
+                            }
+                            alt="Featured"
+                            className="w-32 h-20 object-cover rounded border border-gray-300"
+                          />
+                        </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-status" className="text-gray-700">
-                          Status
-                        </Label>
-                        <Select name="status" defaultValue={selectedPost.post_status}>
-                          <SelectTrigger className="bg-white border-gray-300">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white">
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="published">Published</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="edit-tags" className="text-gray-700">
-                          Tags (comma-separated)
-                        </Label>
-                        <Input
-                          id="edit-tags"
-                          name="tags"
-                          defaultValue={selectedPost.tags.split(',').join(", ")}
-                          className="bg-white border-gray-300"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="edit-featured"
-                        name="featured"
-                        defaultChecked={selectedPost.featured}
-                        className="rounded"
-                      />
-                      <Label htmlFor="edit-featured" className="text-gray-700">
-                        Featured post
-                      </Label>
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setIsEditDialogOpen(false)
-                          setSelectedPost(null)
-                        }}
-                        className="border-gray-300"
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
-                        Update Post
-                      </Button>
-                    </div>
+                    {/* ... Other form fields ... */}
                   </form>
                 )}
               </DialogContent>
