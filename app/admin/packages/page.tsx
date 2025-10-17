@@ -393,6 +393,7 @@ export default function PackageManagementPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [packages, setPackages] = useState<Packages[] | null>(null); // Changed to array type
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const loadPackages = async () => {
     try {
@@ -436,6 +437,7 @@ export default function PackageManagementPage() {
       features: featuresValue ? (featuresValue as string).split("\n").map((tag) => tag.trim()) : [], // Changed to split by newline
       status: formData.get("status") as string || "draft", // Default to 'draft'
       sales: 0,
+      popular: formData.get("popular") ? 'true' : 'false'
     };
     console.log("New package:", newPackage);
 
@@ -463,6 +465,52 @@ export default function PackageManagementPage() {
     } catch (error) {
       toast.error(`Failed Package Adding: ${error}`);
       console.error(`Failed Package Adding: ${error}`);
+    }
+  };
+
+  const handleEditPackage = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent default form submission
+    const formData = new FormData(e.currentTarget);
+
+    console.log("Features from form:", formData.get("features"));
+
+    const featuresValue = formData.get("features");
+    const newPackage = {
+      name: formData.get("name") as string || "",
+      description: formData.get("description") as string || "",
+      price: formData.get("price") as string || "",
+      duration: formData.get("duration") as string || "",
+      features: featuresValue ? (featuresValue as string).split("\n").map((tag) => tag.trim()) : [], // Changed to split by newline
+      status: formData.get("status") as string || "draft", // Default to 'draft'
+      sales: 0,
+      popular: formData.get("popular") ? 'true' : 'false'
+    };
+    console.log("New package:", newPackage);
+
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/packages-update.php", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPackage),
+      });
+
+      const text = await res.text();
+      console.log("Response text:", text);
+      const data = JSON.parse(text);
+
+      if (data.status === "success") {
+        setIsEditDialogOpen(false);
+        toast.success("Package Edit Successfully");
+        loadPackages();
+        window.location.reload();
+      } else {
+        toast.error(`Failed to edit Package: ${data.message || "Unknown error"}`);
+      }
+    } catch (error) {
+      toast.error(`Failed Package updating: ${error}`);
+      console.error(`Failed Package updating: ${error}`);
     }
   };
 
@@ -558,8 +606,103 @@ export default function PackageManagementPage() {
                           <option value="paused">Paused</option>
                         </select>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="popular"
+                          name="popular"
+                          // onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
+                          className="rounded"
+                        />
+                        <Label htmlFor="popular" className="text-white">
+                          Mark as Popular
+                        </Label>
+                      </div>
                       <Button type="submit" className="w-full bg-gray-900 text-white hover:bg-gray-800">
                         Create Package
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gray-900 text-white hover:bg-gray-800">Create Package</Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-white border-gray-200">
+                    <DialogHeader>
+                      <DialogTitle className="text-gray-900">Create New Package</DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Edit a new service package to your offerings
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleEditPackage} className="space-y-4">
+                      <div>
+                        <Label htmlFor="name" className="text-gray-700">
+                          Package Name
+                        </Label>
+                        <Input id="name" name="name" placeholder="Enter package name" className="border-gray-200" />
+                      </div>
+                      <div>
+                        <Label htmlFor="description" className="text-gray-700">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="description"
+                          name="description"
+                          placeholder="Enter package description"
+                          className="border-gray-200"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="price" className="text-gray-700">
+                            Price
+                          </Label>
+                          <Input id="price" name="price" placeholder="$0.00" className="border-gray-200" />
+                        </div>
+                        <div>
+                          <Label htmlFor="duration" className="text-gray-700">
+                            Duration
+                          </Label>
+                          <Input id="duration" name="duration" placeholder="1 month" className="border-gray-200" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="features" className="text-gray-700">
+                          Features
+                        </Label>
+                        <Textarea
+                          id="features"
+                          name="features"
+                          placeholder="List package features (one per line)"
+                          className="border-gray-200"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="status" className="text-gray-700">
+                          Status
+                        </Label>
+                        <select id="status" name="status" className="w-full border-gray-200 p-2 rounded">
+                          <option value="draft">Draft</option>
+                          <option value="active">Active</option>
+                          <option value="paused">Paused</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="popular"
+                          name="popular"
+                          // onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
+                          className="rounded"
+                        />
+                        <Label htmlFor="popular" className="text-black">
+                          Mark as Popular
+                        </Label>
+                      </div>
+                      <Button type="submit" className="w-full bg-gray-900 text-white hover:bg-gray-800">
+                        Edit Package
                       </Button>
                     </form>
                   </DialogContent>
@@ -641,9 +784,98 @@ export default function PackageManagementPage() {
                       <div className="pt-4 border-t border-gray-200">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-gray-600">Sales:</span>
-                          <span className="font-medium text-gray-900">{pkg.sales}</span>
+                          <span className="font-medium text-gray-900">{pkg.sales || 0}</span>
                         </div>
                         <div className="flex space-x-2">
+                          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 bg-transparent"
+                              >
+                                Edit
+                              </Button>
+                              {/* <Button className="bg-gray-900 text-white hover:bg-gray-800">Create Package</Button> */}
+                            </DialogTrigger>
+                            <DialogContent className="bg-white border-gray-200">
+                              <DialogHeader>
+                                <DialogTitle className="text-gray-900">Create New Package</DialogTitle>
+                                <DialogDescription className="text-gray-600">
+                                  Edit a new service package to your offerings
+                                </DialogDescription>
+                              </DialogHeader>
+                              <form onSubmit={handleEditPackage} className="space-y-4">
+                                <div>
+                                  <Label htmlFor="name" className="text-gray-700">
+                                    Package Name
+                                  </Label>
+                                  <Input id="name" name="name" placeholder="Enter package name" className="border-gray-200" />
+                                </div>
+                                <div>
+                                  <Label htmlFor="description" className="text-gray-700">
+                                    Description
+                                  </Label>
+                                  <Textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="Enter package description"
+                                    className="border-gray-200"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="price" className="text-gray-700">
+                                      Price
+                                    </Label>
+                                    <Input id="price" name="price" placeholder="$0.00" className="border-gray-200" />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="duration" className="text-gray-700">
+                                      Duration
+                                    </Label>
+                                    <Input id="duration" name="duration" placeholder="1 month" className="border-gray-200" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label htmlFor="features" className="text-gray-700">
+                                    Features
+                                  </Label>
+                                  <Textarea
+                                    id="features"
+                                    name="features"
+                                    placeholder="List package features (one per line)"
+                                    className="border-gray-200"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="status" className="text-gray-700">
+                                    Status
+                                  </Label>
+                                  <select id="status" name="status" className="w-full border-gray-200 p-2 rounded">
+                                    <option value="draft">Draft</option>
+                                    <option value="active">Active</option>
+                                    <option value="paused">Paused</option>
+                                  </select>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="popular"
+                                    name="popular"
+                                    // onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
+                                    className="rounded"
+                                  />
+                                  <Label htmlFor="popular" className="text-black">
+                                    Mark as Popular
+                                  </Label>
+                                </div>
+                                <Button type="submit" className="w-full bg-gray-900 text-white hover:bg-gray-800">
+                                  Edit Package
+                                </Button>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
                           <Button
                             variant="outline"
                             size="sm"
