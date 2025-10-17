@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -5,76 +7,46 @@ import { Input } from "@/components/ui/input"
 import { ArrowRight, Calendar, Clock, User, Search } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import Image from "next/image"
 
-const blogPosts = [
-  {
-    id: 1,
-    title: "The Complete Guide to Guest Posting in 2024",
-    excerpt:
-      "Learn the latest strategies and best practices for successful guest posting campaigns that drive real results.",
-    author: "Sarah Johnson",
-    date: "March 15, 2024",
-    readTime: "8 min read",
-    category: "SEO Strategy",
-    image: "/guest-posting-guide.jpg",
-    featured: true,
-  },
-  {
-    id: 2,
-    title: "How to Build High-Quality Backlinks That Actually Work",
-    excerpt: "Discover proven link building techniques that improve your search rankings and drive organic traffic.",
-    author: "Mike Chen",
-    date: "March 12, 2024",
-    readTime: "6 min read",
-    category: "Link Building",
-    image: "/backlink-building.jpg",
-    featured: false,
-  },
-  {
-    id: 3,
-    title: "Content Marketing ROI: Measuring What Matters",
-    excerpt: "Learn how to track and measure the success of your content marketing efforts with actionable metrics.",
-    author: "Emily Rodriguez",
-    date: "March 10, 2024",
-    readTime: "7 min read",
-    category: "Content Marketing",
-    image: "/content-marketing-analytics.jpg",
-    featured: false,
-  },
-  {
-    id: 4,
-    title: "SEO Trends to Watch in 2024",
-    excerpt: "Stay ahead of the curve with the latest SEO trends and algorithm updates that will shape search in 2024.",
-    author: "David Park",
-    date: "March 8, 2024",
-    readTime: "5 min read",
-    category: "SEO News",
-    image: "/seo-trends-2024.jpg",
-    featured: false,
-  },
-  {
-    id: 5,
-    title: "The Art of Writing Compelling Guest Post Pitches",
-    excerpt: "Master the art of crafting irresistible guest post pitches that get accepted by top-tier publications.",
-    author: "Lisa Thompson",
-    date: "March 5, 2024",
-    readTime: "4 min read",
-    category: "Guest Posting",
-    image: "/email-pitch-writing.jpg",
-    featured: false,
-  },
-  {
-    id: 6,
-    title: "Local SEO: Dominating Your Geographic Market",
-    excerpt: "Complete guide to local SEO strategies that help businesses dominate their local search results.",
-    author: "James Wilson",
-    date: "March 3, 2024",
-    readTime: "9 min read",
-    category: "Local SEO",
-    image: "/local-business-seo.png",
-    featured: false,
-  },
-]
+// Update mock data to match Blogs interface
+// const mockBlogPosts: Blogs = [
+//   {
+//     id: 1,
+//     post_title: "The Complete Guide to Guest Posting in 2024",
+//     slug: "guest-posting-2024",
+//     post_excerpt: "Learn the latest strategies and best practices for successful guest posting campaigns that drive real results.",
+//     post_content: "Detailed content here...",
+//     post_author: "Sarah Johnson",
+//     post_type: "SEO Strategy",
+//     post_status: "published",
+//     post_date: "2024-03-15",
+//     publishDate: "2024-03-15",
+//     post_modified: "2024-03-15",
+//     views: 120,
+//     featured: "on", // Changed to string
+//     tags: ["guest posting", "seo"],
+//   },
+//   {
+//     id: 2,
+//     post_title: "How to Build High-Quality Backlinks That Actually Work",
+//     slug: "backlinks-2024",
+//     post_excerpt: "Discover proven link building techniques that improve your search rankings and drive organic traffic.",
+//     post_content: "Detailed content here...",
+//     post_author: "Mike Chen",
+//     post_type: "Link Building",
+//     post_status: "published",
+//     post_date: "2024-03-12",
+//     publishDate: "2024-03-12",
+//     post_modified: "2024-03-12",
+//     views: 95,
+//     featured: "off", // Changed to string
+//     tags: ["link building", "seo"],
+//   },
+//   // Add other mock posts similarly...
+// ];
 
 const categories = [
   "All Posts",
@@ -84,26 +56,60 @@ const categories = [
   "Guest Posting",
   "SEO News",
   "Local SEO",
+  "Analytics"
 ];
 
 interface Blogs {
-  id: number,
-  post_title: string,
-  slug: string,
-  post_excerpt: string,
-  post_content: string,
-  post_author: string,
-  post_type: string,
-  post_status: string,
-  post_date: string,
-  publishDate: string,
-  post_modified: string,
-  views: number,
-  featured: string,
-  tags: string[],
+  id: number;
+  post_title: string;
+  post_image: string;
+  slug: string;
+  post_excerpt: string;
+  post_content: string;
+  post_author: string;
+  post_type: string;
+  post_status: string;
+  post_date: string;
+  publishDate: string;
+  post_modified: string;
+  views: number;
+  featured: string; // Ensured as string
+  tags: string[];
 }
 
 export default function BlogPage() {
+  const [blogPosts, setBlogPosts] = useState<Blogs | null>(null);
+  const [showAllPosts, setShowAllPosts] = useState(false);
+
+  const loadPosts = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/posts.php", {
+        method: "GET"
+      });
+      const storedPosts = await res.json();
+      if (storedPosts) {
+        const publishedPosts = storedPosts.filter((post: Blogs) => {
+          if (post.post_status === 'published' || post.post_status === 'publish')
+            return post;
+
+        })
+        const reversedPosts = publishedPosts.sort((a: Blogs, b: Blogs) => {
+          return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+        });
+        console.log(reversedPosts);
+        setBlogPosts(reversedPosts);
+      } else {
+        setBlogPosts(null);
+      }
+    } catch (error) {
+      toast.error(`Error loading posts: ${error}`);
+    }
+  };
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -151,37 +157,44 @@ export default function BlogPage() {
             <Badge className="bg-brand-cyan text-black font-semibold">Featured Article</Badge>
           </div>
 
-          {blogPosts
-            .filter((post) => post.featured)
-            .map((post) => (
-              <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+          {blogPosts && blogPosts.slice(0, 3).map((post: Blogs) => {
+            return post.featured === 'on' ? (
+              <Card key={post.id} className="overflow-hidden my-3 hover:shadow-lg transition-shadow">
                 <div className="md:flex">
                   <div className="md:w-1/2">
                     <img
-                      src={post.image || "/placeholder.svg"}
-                      alt={post.title}
+                      loading="lazy" src={
+                        post.post_image.startsWith('https://') || post.post_image.startsWith('http://')
+                          ? post.post_image
+                          : '/local-business-seo.png'
+                        // : `/guestpost-backend/${encodeURIComponent(post.post_image)}`
+                      }
+                      //  alt='image'
+                      // src={post.post_image || "/local-business-seo.png"}
+                      alt={post.post_title}
                       className="w-full h-64 md:h-full object-cover"
                     />
                   </div>
                   <div className="md:w-1/2 p-8">
                     <Badge variant="secondary" className="mb-4">
-                      {post.category}
+                      {post.post_type}
                     </Badge>
-                    <h2 className="text-3xl font-bold mb-4 text-balance">{post.title}</h2>
-                    <p className="text-muted-foreground text-lg mb-6">{post.excerpt}</p>
+                    <h2 className="text-3xl font-bold mb-4 text-balance">{post.post_title}</h2>
+                    <p className="text-muted-foreground text-lg mb-6">{post.post_excerpt}</p>
+                    <p className="text-muted-foreground text-lg mb-6">{post.post_content}</p>
 
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {post.author}
+                        {post.post_author}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {post.date}
+                        {new Date(post.publishDate).toLocaleDateString() || "N/A"}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {post.readTime}
+                        {post.views}
                       </div>
                     </div>
 
@@ -192,7 +205,8 @@ export default function BlogPage() {
                   </div>
                 </div>
               </Card>
-            ))}
+            ) : null;
+          })}
         </div>
       </section>
 
@@ -207,40 +221,45 @@ export default function BlogPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts
-              .filter((post) => !post.featured)
-              .map((post) => (
+            {blogPosts && (showAllPosts ? blogPosts : blogPosts.slice(0, 7)).map((post: Blogs) => {
+              return post.featured === 'off' ? (
                 <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <div className="relative overflow-hidden">
                     <img
-                      src={post.image || "/placeholder.svg"}
-                      alt={post.title}
+                      loading="lazy" src={
+                        post.post_image.startsWith('https://') || post.post_image.startsWith('http://')
+                          ? post.post_image
+                          : '/local-business-seo.png'
+                        // : `/guestpost-backend/${encodeURIComponent(post.post_image)}`
+                      }
+                      // src={post.post_image || "/placeholder.svg"}
+                      alt={post.post_title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <Badge className="absolute top-4 left-4 bg-white/90 text-black">{post.category}</Badge>
+                    <Badge className="absolute top-4 left-4 bg-white/90 text-black">{post.post_type}</Badge>
                   </div>
 
                   <CardHeader>
                     <CardTitle className="text-xl text-balance group-hover:text-brand-purple transition-colors">
-                      {post.title}
+                      {post.post_title}
                     </CardTitle>
-                    <CardDescription className="text-base">{post.excerpt}</CardDescription>
+                    <CardDescription className="text-base">{post.post_excerpt.slice(0, 100)}</CardDescription>
                   </CardHeader>
 
                   <CardContent>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {post.author}
+                        {post.post_author}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {post.readTime}
+                        {post.views}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{post.date}</span>
+                      <span className="text-sm text-muted-foreground">{new Date(post.publishDate).toLocaleDateString() || "N/A"}</span>
                       <Button variant="ghost" size="sm" className="text-brand-purple hover:text-brand-purple/80">
                         Read More
                         <ArrowRight className="ml-1 h-4 w-4" />
@@ -248,21 +267,40 @@ export default function BlogPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              ) : null;
+            })}
           </div>
 
-          <div className="text-center mt-12">
-            <Button variant="outline" size="lg">
-              Load More Articles
-            </Button>
-          </div>
+          {blogPosts && blogPosts.length > 7 ? (
+            <div className="text-center mt-12">
+              <Button onClick={() => setShowAllPosts(!showAllPosts)} variant="outline" size="lg">
+                {showAllPosts ? "Show Less Articles" : "Load More Articles"}
+              </Button>
+            </div>
+          ) : ""}
         </div>
       </section>
 
       {/* Newsletter Section */}
-      
+      {/* <section className="py-16 bg-brand-purple text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Subscribe to Our Newsletter</h2>
+          <p className="text-xl mb-8">Get the latest SEO tips and updates delivered straight to your inbox.</p>
+          <div className="max-w-md mx-auto">
+            <div className="relative">
+              <Input
+                placeholder="Enter your email"
+                className="w-full pl-10 pr-20 py-2 bg-white text-black rounded-md"
+              />
+              <Button className="absolute right-1 top-1 bg-white text-brand-purple hover:bg-gray-200">
+                Subscribe
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section> */}
 
       <Footer />
     </div>
-  )
+  );
 }

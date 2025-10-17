@@ -407,8 +407,8 @@ export default function BlogManagement() {
     setFormData({ ...formData, post_image: "" }); // Clear form data image
   };
 
-  const categories = ["SEO", "Link Building", "Content Marketing", "Analytics", "Digital Marketing", "Guest Posting"]
-
+  const categories = ["SEO Strategy", "Link Building", "Content Marketing", "Analytics", "Digital Marketing", "Guest Posting", "SEO News",
+    "Local SEO",]
   return (
     <div className="min-h-screen bg-white">
       <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
@@ -1020,9 +1020,9 @@ export default function BlogManagement() {
                           className="border-gray-300 text-gray-700 bg-transparent"
                         >
                           <ImageIcon className="w-4 h-4 mr-2" />
-                          {formData.post_image || featuredImageFile ? "Change Featured Image" : "Add Featured Image"}
+                          {selectedPost.post_image || featuredImageFile ? "Change Featured Image" : "Add Featured Image"}
                         </Button>
-                        {(formData.post_image || featuredImageFile) && (
+                        {(selectedPost.post_image || featuredImageFile) && (
                           <Button
                             type="button"
                             variant="outline"
@@ -1033,13 +1033,17 @@ export default function BlogManagement() {
                           </Button>
                         )}
                       </div>
-                      {(formData.post_image || featuredImageFile) && (
+                      {(selectedPost.post_image || featuredImageFile) && (
                         <div className="mt-2">
                           <img
+                            loading="lazy"
                             src={
                               featuredImageFile
                                 ? URL.createObjectURL(featuredImageFile)
-                                : formData.post_image || "/placeholder.svg"
+                                : selectedPost.post_image.startsWith('https://') || selectedPost.post_image.startsWith('http://')
+                                  ? selectedPost.post_image
+                                  : '/local-business-seo.png'
+                              // : `/fast-rank-backend/${encodeURIComponent(selectedPost.post_image)}`
                             }
                             alt="Featured"
                             className="w-32 h-20 object-cover rounded border border-gray-300"
@@ -1073,7 +1077,7 @@ export default function BlogManagement() {
                           {featuredImageFile && (
                             <div className="relative">
                               <img
-                                src={URL.createObjectURL(featuredImageFile) || selectedPost.post_image}
+                                src={URL.createObjectURL(featuredImageFile) || selectedPost}
                                 alt="Preview"
                                 className="w-full h-48 object-cover rounded"
                               />
