@@ -84,7 +84,24 @@ const categories = [
   "Guest Posting",
   "SEO News",
   "Local SEO",
-]
+];
+
+interface Blogs {
+  id: number,
+  post_title: string,
+  slug: string,
+  post_excerpt: string,
+  post_content: string,
+  post_author: string,
+  post_type: string,
+  post_status: string,
+  post_date: string,
+  publishDate: string,
+  post_modified: string,
+  views: number,
+  featured: string,
+  tags: string[],
+}
 
 export default function BlogPage() {
   return (
