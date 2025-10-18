@@ -27,6 +27,7 @@ interface Packages {
   features: string[];
   status: string;
   sales: number;
+  popular : string | boolean;
 }
 
 const packages = [
@@ -122,6 +123,7 @@ export default function PackageManagementPage() {
 
     const featuresValue = formData.get("features");
     const newPackage = {
+      id: selectedPackage?.id,
       name: formData.get("name") as string || "",
       description: formData.get("description") as string || "",
       price: formData.get("price") as string || "",
@@ -354,6 +356,7 @@ export default function PackageManagementPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => {setSelectedPackage(pkg)}}
                                 className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 bg-transparent"
                               >
                                 Edit
@@ -374,7 +377,7 @@ export default function PackageManagementPage() {
                                   <Input
                                     id="name"
                                     name="name"
-                                    defaultValue={pkg.name}
+                                    defaultValue={selectedPackage?.name}
                                     placeholder="Enter package name"
                                     className="border-gray-200"
                                   />
@@ -386,7 +389,7 @@ export default function PackageManagementPage() {
                                   <Textarea
                                     id="description"
                                     name="description"
-                                    defaultValue={pkg.description}
+                                    defaultValue={selectedPackage?.description}
                                     placeholder="Enter package description"
                                     className="border-gray-200"
                                   />
@@ -399,7 +402,7 @@ export default function PackageManagementPage() {
                                     <Input
                                       id="price"
                                       name="price"
-                                      defaultValue={pkg.price}
+                                      defaultValue={selectedPackage?.price}
                                       placeholder="$0.00"
                                       className="border-gray-200"
                                     />
@@ -411,7 +414,7 @@ export default function PackageManagementPage() {
                                     <Input
                                       id="duration"
                                       name="duration"
-                                      defaultValue={pkg.duration}
+                                      defaultValue={selectedPackage?.duration}
                                       placeholder="1 month"
                                       className="border-gray-200"
                                     />
@@ -424,7 +427,7 @@ export default function PackageManagementPage() {
                                   <Textarea
                                     id="features"
                                     name="features"
-                                    defaultValue={pkg.features.join("\n")}
+                                    defaultValue={selectedPackage?.features.join("\n")}
                                     placeholder="List package features (one per line)"
                                     className="border-gray-200"
                                   />
@@ -436,7 +439,7 @@ export default function PackageManagementPage() {
                                   <select
                                     id="status"
                                     name="status"
-                                    defaultValue={pkg.status}
+                                    defaultValue={selectedPackage?.status}
                                     className="w-full border-gray-200 p-2 rounded"
                                   >
                                     <option value="draft">Draft</option>
@@ -449,7 +452,7 @@ export default function PackageManagementPage() {
                                     type="checkbox"
                                     id="popular"
                                     name="popular"
-                                    defaultChecked={pkg.popular === "true"}
+                                    defaultChecked={selectedPackage?.popular === "true"}
                                     className="rounded"
                                   />
                                   <Label htmlFor="popular" className="text-black">
@@ -468,34 +471,37 @@ export default function PackageManagementPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                 onClick={() => {setSelectedPackage(pkg)}}
                                 className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 bg-transparent"
                               >
                                 View
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-white border-gray-200 max-w-2xl max-h-2xl">
+                            <DialogContent className="bg-white border-gray-200 max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle className="text-2xl font-bold text-gray-900">{pkg.name}</DialogTitle>
+                                <DialogTitle className="text-2xl font-bold text-gray-900">{pkg.name}
+                                  {selectedPackage?.popular ? (<Badge>Popular</Badge>) : null}
+                                   </DialogTitle>
                                 <DialogDescription className="text-gray-600 mt-2">
-                                  Detailed view of the {pkg.name} package
+                                  Detailed view of the {selectedPackage?.name} package
                                 </DialogDescription>
                               </DialogHeader>
-                              <div className="mt-6 space-y-6">
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="mt-6 space-y-2">
+                                <div className="bg-gray-50 p-2 rounded-lg">
                                   <h3 className="text-lg font-semibold text-gray-800">Description</h3>
-                                  <p className="text-gray-600 mt-2">{pkg.description}</p>
+                                  <p className="text-gray-600 mt-1">{pkg.description}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                  <div className="bg-gray-50 p-2 rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-800">Price</h3>
-                                    <p className="text-gray-600 mt-2">{pkg.price}</p>
+                                    <p className="text-gray-600 mt-1">{pkg.price}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                  <div className="bg-gray-50 p-2 rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-800">Duration</h3>
-                                    <p className="text-gray-600 mt-2">{pkg.duration}</p>
+                                    <p className="text-gray-600 mt-1">{pkg.duration}</p>
                                   </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="bg-gray-50 p-2 rounded-lg">
                                   <h3 className="text-lg font-semibold text-gray-800">Features</h3>
                                   <ul className="list-disc list-inside mt-2 text-gray-600 space-y-1">
                                     {pkg.features.map((feature: any, index: number) => (
@@ -504,11 +510,11 @@ export default function PackageManagementPage() {
                                   </ul>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                  <div className="bg-gray-50 p-2 rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-800">Status</h3>
                                     <Badge className={getStatusColor(pkg.status)}>{pkg.status}</Badge>
                                   </div>
-                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                  <div className="bg-gray-50 p-2 rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-800">Sales</h3>
                                     <p className="text-gray-600 mt-2">{pkg.sales || 0}</p>
                                   </div>
