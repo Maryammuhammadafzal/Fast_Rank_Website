@@ -7,62 +7,70 @@ import { ArrowRight, CheckCircle, Crown, Zap, Target } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
-const packages = [
-  {
-    id: "starter",
-    name: "Starter Package",
-    description: "Perfect for small businesses getting started with SEO",
-    price: 299,
-    originalPrice: 399,
-    icon: <Zap className="h-8 w-8" />,
-    popular: false,
-    features: [
-      "2 Guest Posts (DA 50+)",
-      "1 Article Writing (1000 words)",
-      "Basic SEO optimization",
-      "Detailed reporting",
-      "Email support",
-      "30-day delivery",
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional Package",
-    description: "Most popular choice for growing businesses",
-    price: 699,
-    originalPrice: 899,
-    icon: <Target className="h-8 w-8" />,
-    popular: true,
-    features: [
-      "5 Guest Posts (DA 70+)",
-      "3 Article Writing (1500 words each)",
-      "2 Link Insertions",
-      "Advanced SEO optimization",
-      "Priority support",
-      "Detailed analytics",
-      "20-day delivery",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise Package",
-    description: "Comprehensive solution for established businesses",
-    price: 1299,
-    originalPrice: 1699,
-    icon: <Crown className="h-8 w-8" />,
-    popular: false,
-    features: [
-      "10 Guest Posts (DA 80+)",
-      "5 Article Writing (2000 words each)",
-      "5 Link Insertions",
-      "Premium SEO optimization",
-      "Dedicated account manager",
-      "Custom reporting dashboard",
-      "15-day delivery",
-      "Monthly strategy calls",
-    ],
-  },
+// const packages = [
+//   {
+//     id: "starter",
+//     name: "Starter Package",
+//     description: "Perfect for small businesses getting started with SEO",
+//     price: 299,
+//     originalPrice: 399,
+//     icon: <Zap className="h-8 w-8" />,
+//     popular: false,
+//     features: [
+//       "2 Guest Posts (DA 50+)",
+//       "1 Article Writing (1000 words)",
+//       "Basic SEO optimization",
+//       "Detailed reporting",
+//       "Email support",
+//       "30-day delivery",
+//     ],
+//   },
+//   {
+//     id: "professional",
+//     name: "Professional Package",
+//     description: "Most popular choice for growing businesses",
+//     price: 699,
+//     originalPrice: 899,
+//     icon: <Target className="h-8 w-8" />,
+//     popular: true,
+//     features: [
+//       "5 Guest Posts (DA 70+)",
+//       "3 Article Writing (1500 words each)",
+//       "2 Link Insertions",
+//       "Advanced SEO optimization",
+//       "Priority support",
+//       "Detailed analytics",
+//       "20-day delivery",
+//     ],
+//   },
+//   {
+//     id: "enterprise",
+//     name: "Enterprise Package",
+//     description: "Comprehensive solution for established businesses",
+//     price: 1299,
+//     originalPrice: 1699,
+//     icon: <Crown className="h-8 w-8" />,
+//     popular: false,
+//     features: [
+//       "10 Guest Posts (DA 80+)",
+//       "5 Article Writing (2000 words each)",
+//       "5 Link Insertions",
+//       "Premium SEO optimization",
+//       "Dedicated account manager",
+//       "Custom reporting dashboard",
+//       "15-day delivery",
+//       "Monthly strategy calls",
+//     ],
+//   },
+// ]
+
+const icons = [
+  <Target className="h-8 w-8" />,
+  <Crown className="h-8 w-8" />,
+  <Zap className="h-8 w-8" />,
 ]
 
 const addOns = [
@@ -88,8 +96,56 @@ const addOns = [
   },
 ]
 
+interface Packages {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  duration: string;
+  features: string[];
+  status: string;
+  sales: number;
+  popular: string | boolean;
+}
+
+
 export default function PackagesPage() {
-  const router = useRouter()
+  const router = useRouter();
+  const [packages, setPackages] = useState<Packages[] | null>(null);
+
+  const loadPackages = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/fast-rank-backend/packages.php", {
+        method: "GET",
+      });
+      const text = await res.text();
+      console.log("Response text:", text);
+      const storedPackages = JSON.parse(text);
+      console.log("Parsed packages:", storedPackages);
+
+      if (storedPackages && storedPackages.status === "success" && Array.isArray(storedPackages.data)) {
+        const reversedPackages = [...storedPackages.data].sort((a: any, b: any) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+        // Assign a random icon to each package
+        const packagesWithIcons = reversedPackages.map((pkg) => ({
+          ...pkg,
+          icon: icons[Math.floor(Math.random() * icons.length)],
+        }));
+
+        setPackages(packagesWithIcons);
+      } else {
+        setPackages([]);
+      }
+    } catch (error) {
+      toast.error(`Error loading Packages: ${error}`);
+    }
+  };
+
+  useEffect(() => {
+    loadPackages()
+  }, [])
 
   const handleBuyNow = (pkg: (typeof packages)[0]) => {
     const checkoutUrl = `/checkout?productId=package-${pkg.id}&name=${encodeURIComponent(pkg.name)}&price=${pkg.price}&type=SEO%20Package&description=${encodeURIComponent(pkg.description)}`
@@ -106,7 +162,7 @@ export default function PackagesPage() {
       <Header />
 
       {/* Hero Section */}
-      
+
 
       {/* Packages Grid */}
       <section className="py-20">
@@ -119,53 +175,58 @@ export default function PackagesPage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8 mb-16">
-            {packages.map((pkg) => (
-              <Card
-                key={pkg.id}
-                className={`relative ${pkg.popular ? "ring-2 ring-accent shadow-lg scale-105" : ""}`}
-              >
-                {pkg.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-accent text-black font-semibold px-4 py-1">Most Popular</Badge>
-                  </div>
-                )}
+            {packages && packages.map((pkg: any) => (
+              <>
+                {pkg.status === 'active' ? (
 
-                <CardHeader className="text-center pb-8">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-brand-purple/10 rounded-lg text-brand-purple">{pkg.icon}</div>
-                  </div>
-                  <CardTitle className="text-2xl">{pkg.name}</CardTitle>
-                  <CardDescription className="text-base">{pkg.description}</CardDescription>
-
-                  <div className="mt-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-3xl font-bold">${pkg.price}</span>
-                      <span className="text-lg text-muted-foreground line-through">${pkg.originalPrice}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">One-time payment</p>
-                  </div>
-                </CardHeader>
-
-                <CardContent>
-                  <ul className="space-y-3 mb-8">
-                    {pkg.features.map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    className={`w-full ${pkg.popular ? "bg-accent hover:bg-accent/90 text-black" : ""}`}
-                    size="lg"
-                    onClick={() => handleBuyNow(pkg)}
+                  <Card
+                    key={pkg.id}
+                    className={`relative ${pkg.popular == 1 ? "ring-2 ring-accent shadow-lg scale-105" : ""}`}
                   >
-                    Get Started
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
+                    {pkg.popular == 1 && (
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-accent text-black font-semibold px-4 py-1">Most Popular</Badge>
+                      </div>
+                    )}
+
+                    <CardHeader className="text-center pb-8">
+                      <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-brand-purple/10 rounded-lg text-brand-purple">{pkg?.icon}</div>
+                      </div>
+                      <CardTitle className="text-2xl">{pkg.name}</CardTitle>
+                      <CardDescription className="text-base">{pkg.description}</CardDescription>
+
+                      <div className="mt-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-3xl font-bold">${pkg.price}</span>
+                          <span className="text-lg text-muted-foreground line-through">${parseInt(pkg.price) + 200}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">One-time payment</p>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <ul className="space-y-3 mb-8">
+                        {pkg.features.map((feature: any, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Button
+                        className={`w-full ${pkg.popular == 1 ? "bg-accent hover:bg-accent/90 text-black" : ""}`}
+                        size="lg"
+                        onClick={() => handleBuyNow(pkg)}
+                      >
+                        Get Started
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </>
             ))}
           </div>
         </div>
@@ -256,7 +317,7 @@ export default function PackagesPage() {
       </section>
 
       {/* CTA Section */}
-      
+
 
       <Footer />
     </div>

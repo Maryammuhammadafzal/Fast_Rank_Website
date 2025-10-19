@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator"
 import { CreditCard, ShoppingCart, Lock, CheckCircle } from "lucide-react"
 // import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 interface User {
   id: number,
@@ -36,6 +37,7 @@ function CheckoutContent() {
   const [user, setUser] = useState<User | null>(null)
   // const supabase = createClient()
 
+  const [paymentMethods, setPaymentMethods] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [processing, setProcessing] = useState(false)
   const [orderComplete, setOrderComplete] = useState(false)
@@ -90,6 +92,37 @@ function CheckoutContent() {
     expiryDate: "",
     cvv: "",
   })
+
+  
+  // Load payment methods (call on mount or refresh)
+  const loadPaymentMethods = async () => {
+    // setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8080/fast-rank-backend/payment-methods-get.php?user_id=${user?.id}`, {
+        method: "GET",
+      });
+      const data = await res.json();
+      console.log(data);
+
+      if (data.status === "success") {
+        setPaymentMethods(data.data || []);
+      } else {
+        console.log(data.message);
+
+        toast.error("Failed to load payment methods");
+      }
+    } catch (error) {
+      toast.error("Error loading payment methods");
+      console.error("Error loading payment methods", error);
+    } finally {
+      // setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, [user?.id]);
+
 
   useEffect(() => {
     if (user?.user_email) {
