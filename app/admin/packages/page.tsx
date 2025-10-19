@@ -85,7 +85,7 @@ export default function PackageManagementPage() {
       features: featuresValue ? (featuresValue as string).split("\n").map((tag) => tag.trim()) : [],
       status: formData.get("status") as string || "draft",
       sales: 0,
-      popular: formData.get("popular") ? "true" : "false",
+      popular: formData.get("popular") ? 1 : 0,
     };
     console.log("New package:", newPackage);
 
@@ -132,7 +132,7 @@ export default function PackageManagementPage() {
       features: featuresValue ? (featuresValue as string).split("\n").map((tag) => tag.trim()) : [],
       status: formData.get("status") as string || "draft",
       sales: 0,
-      popular: formData.get("popular") ? "true" : "false",
+      popular: formData.get("popular") ? 1 : 0,
     };
     console.log("New package:", newPackage);
 
@@ -323,7 +323,12 @@ export default function PackageManagementPage() {
             {/* Packages Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {packages?.map((pkg: any) => (
-                <Card key={pkg.id} className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card key={pkg.id} className={` ${pkg.popular == 1 ? "border relative border-accent" : ""} bg-white border-gray-200 hover:shadow-lg transition-shadow`}>
+                {pkg.popular == 1 ? (
+                  <div className="absolute -top-3 left-[43%]">
+                    <Badge className={`bg-accent text-accent-foreground`}>Popular</Badge>
+                  </div>
+                ) : null}
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg text-gray-900">{pkg.name}</CardTitle>
@@ -356,16 +361,16 @@ export default function PackageManagementPage() {
                         <div className="flex space-x-2">
                           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                             <DialogTrigger asChild>
+                            </DialogTrigger>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {setSelectedPackage(pkg)}}
+                                onClick={() => {setSelectedPackage(pkg); setIsEditDialogOpen(true)}}
                                 className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 bg-transparent"
                               >
                                 Edit
                               </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-white border-gray-200 max-w-2xl z-60">
+                            <DialogContent className="bg-white border-gray-200 max-w-2xl" onOpenAutoFocus={(event) => event.preventDefault()}>
                               <DialogHeader>
                                 <DialogTitle className="text-gray-900">Edit Package</DialogTitle>
                                 <DialogDescription className="text-gray-600">
@@ -455,7 +460,7 @@ export default function PackageManagementPage() {
                                     type="checkbox"
                                     id="popular"
                                     name="popular"
-                                    defaultChecked={selectedPackage?.popular === "true"}
+                                    defaultChecked={selectedPackage?.popular.toString() == '1'}
                                     className="rounded"
                                   />
                                   <Label htmlFor="popular" className="text-black">
@@ -480,52 +485,52 @@ export default function PackageManagementPage() {
                                 View
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-white border-gray-200 max-w-2xl">
+                            <DialogContent className="bg-white border-gray-200 max-w-2xl z-50">
                               <DialogHeader>
-                                <DialogTitle className="text-2xl items-center font-bold text-gray-900">{pkg.name}
+                                <DialogTitle className="text-2xl items-center font-bold text-gray-900">{selectedPackage?.name}
                                   {selectedPackage?.popular ? (<Badge>Popular</Badge>) : null}
                                    </DialogTitle>
                                 <DialogDescription className="text-gray-600 mt-2">
                                   Detailed view of the {selectedPackage?.name} package
                                 </DialogDescription>
                               </DialogHeader>
-                              <div className="mt-6 space-y-2">
+                              <div className="mt-6 space-y-4">
                                 <div className="bg-gray-50 p-2 rounded-lg">
                                   <h3 className="text-base font-semibold text-gray-800">Description</h3>
-                                  <p className="text-gray-600 mt-1 text-sm">{pkg.description}</p>
+                                  <p className="text-gray-600 mt-1 text-sm">{selectedPackage?.description}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div className="bg-gray-50 p-2 flex gap-1 justify-between items-center rounded-lg">
                                     <h3 className="text-base font-semibold text-gray-800">Price</h3>
-                                    <p className="text-gray-600 mt-1 text-sm">{pkg.price}</p>
+                                    <p className="text-gray-600 mt-1 text-sm">{selectedPackage?.price}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 flex gap-1 rounded-lg">
+                                  <div className="bg-gray-50 p-2 flex gap-1 justify-between items-center rounded-lg">
                                     <h3 className="text-base font-semibold text-gray-800">Duration</h3>
-                                    <p className="text-gray-600 mt-1 text-sm">{pkg.duration}</p>
+                                    <p className="text-gray-600 mt-1 text-sm pr-2">{selectedPackage?.duration}</p>
                                   </div>
                                 </div>
                                 <div className="bg-gray-50 p-2 rounded-lg">
                                   <h3 className="text-base font-semibold text-gray-800">Features</h3>
                                   <ul className="list-inside mt-2 text-gray-600 space-y-1">
-                                    {pkg.features.map((feature: any, index: number) => (
+                                    {selectedPackage?.features.map((feature: any, index: number) => (
                                       <li className="text-xs" key={index}>{feature}</li>
                                     ))}
                                   </ul>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-50 p-2 flex rounded-lg">
+                                  <div className="bg-gray-50 p-2 flex justify-between items-center rounded-lg pr-4">
                                     <h3 className="text-base font-semibold text-gray-800">Status</h3>
                                     <Badge className={selectedPackage ? getStatusColor(selectedPackage?.status) : ''}>{selectedPackage?.status}</Badge>
                                   </div>
                                   <div className="bg-gray-50 p-2 justify-between items-center flex rounded-lg">
                                     <h3 className="text-base font-semibold text-gray-800">Sales</h3>
-                                    <p className="text-gray-600 mt-1 pr-2">{pkg.sales || 0}</p>
+                                    <p className="text-gray-600 mt-1 pr-2">{selectedPackage?.sales || 0}</p>
                                   </div>
                                 </div>
                               </div>
                               <Button
                                 onClick={() => setIsViewDialogOpen(false)}
-                                className="mt-6 w-full bg-brand-purple text-white hover:bg-brand-purple/90"
+                                className="mt-6 bg-black w-full cursor-pointer text-white hover:bg-black/90"
                               >
                                 Close
                               </Button>
