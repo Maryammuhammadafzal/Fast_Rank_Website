@@ -75,11 +75,12 @@ export default function PackageManagementPage() {
 
     console.log("Features from form:", formData.get("features"));
 
+    const setPrice = formData.get("price")?.toString().slice(0, 1) === "$" ? formData.get("price")?.toString().slice(1) : formData.get("price")?.toString()
     const featuresValue = formData.get("features");
     const newPackage = {
       name: formData.get("name") as string || "",
       description: formData.get("description") as string || "",
-      price: formData.get("price") as string || "",
+      price: setPrice || "",
       duration: formData.get("duration") as string || "",
       features: featuresValue ? (featuresValue as string).split("\n").map((tag) => tag.trim()) : [],
       status: formData.get("status") as string || "draft",
@@ -105,7 +106,7 @@ export default function PackageManagementPage() {
         setIsAddDialogOpen(false);
         toast.success("Package Added Successfully");
         loadPackages();
-        window.location.reload();
+        // window.location.reload();
       } else {
         toast.error(`Failed to add Package: ${data.message || "Unknown error"}`);
       }
@@ -152,7 +153,7 @@ export default function PackageManagementPage() {
         setIsEditDialogOpen(false);
         toast.success("Package Edit Successfully");
         loadPackages();
-        window.location.reload();
+        // window.location.reload();
       } else {
         toast.error(`Failed to edit Package: ${data.message || "Unknown error"}`);
       }
@@ -165,6 +166,8 @@ export default function PackageManagementPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
+        return "bg-green-100 text-green-800";
+      case "published":
         return "bg-green-100 text-green-800";
       case "draft":
         return "bg-yellow-100 text-yellow-800";
@@ -362,7 +365,7 @@ export default function PackageManagementPage() {
                                 Edit
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-white border-gray-200 max-w-2xl max-h-4xl">
+                            <DialogContent className="bg-white border-gray-200 max-w-2xl z-60">
                               <DialogHeader>
                                 <DialogTitle className="text-gray-900">Edit Package</DialogTitle>
                                 <DialogDescription className="text-gray-600">
@@ -479,7 +482,7 @@ export default function PackageManagementPage() {
                             </DialogTrigger>
                             <DialogContent className="bg-white border-gray-200 max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle className="text-2xl font-bold text-gray-900">{pkg.name}
+                                <DialogTitle className="text-2xl items-center font-bold text-gray-900">{pkg.name}
                                   {selectedPackage?.popular ? (<Badge>Popular</Badge>) : null}
                                    </DialogTitle>
                                 <DialogDescription className="text-gray-600 mt-2">
@@ -488,35 +491,35 @@ export default function PackageManagementPage() {
                               </DialogHeader>
                               <div className="mt-6 space-y-2">
                                 <div className="bg-gray-50 p-2 rounded-lg">
-                                  <h3 className="text-lg font-semibold text-gray-800">Description</h3>
-                                  <p className="text-gray-600 mt-1">{pkg.description}</p>
+                                  <h3 className="text-base font-semibold text-gray-800">Description</h3>
+                                  <p className="text-gray-600 mt-1 text-sm">{pkg.description}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-50 p-2 rounded-lg">
-                                    <h3 className="text-lg font-semibold text-gray-800">Price</h3>
-                                    <p className="text-gray-600 mt-1">{pkg.price}</p>
+                                  <div className="bg-gray-50 p-2 flex gap-1 justify-between items-center rounded-lg">
+                                    <h3 className="text-base font-semibold text-gray-800">Price</h3>
+                                    <p className="text-gray-600 mt-1 text-sm">{pkg.price}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 rounded-lg">
-                                    <h3 className="text-lg font-semibold text-gray-800">Duration</h3>
-                                    <p className="text-gray-600 mt-1">{pkg.duration}</p>
+                                  <div className="bg-gray-50 p-2 flex gap-1 rounded-lg">
+                                    <h3 className="text-base font-semibold text-gray-800">Duration</h3>
+                                    <p className="text-gray-600 mt-1 text-sm">{pkg.duration}</p>
                                   </div>
                                 </div>
                                 <div className="bg-gray-50 p-2 rounded-lg">
-                                  <h3 className="text-lg font-semibold text-gray-800">Features</h3>
-                                  <ul className="list-disc list-inside mt-2 text-gray-600 space-y-1">
+                                  <h3 className="text-base font-semibold text-gray-800">Features</h3>
+                                  <ul className="list-inside mt-2 text-gray-600 space-y-1">
                                     {pkg.features.map((feature: any, index: number) => (
-                                      <li key={index}>{feature}</li>
+                                      <li className="text-xs" key={index}>{feature}</li>
                                     ))}
                                   </ul>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-50 p-2 rounded-lg">
-                                    <h3 className="text-lg font-semibold text-gray-800">Status</h3>
-                                    <Badge className={getStatusColor(pkg.status)}>{pkg.status}</Badge>
+                                  <div className="bg-gray-50 p-2 flex rounded-lg">
+                                    <h3 className="text-base font-semibold text-gray-800">Status</h3>
+                                    <Badge className={selectedPackage ? getStatusColor(selectedPackage?.status) : ''}>{selectedPackage?.status}</Badge>
                                   </div>
-                                  <div className="bg-gray-50 p-2 rounded-lg">
-                                    <h3 className="text-lg font-semibold text-gray-800">Sales</h3>
-                                    <p className="text-gray-600 mt-2">{pkg.sales || 0}</p>
+                                  <div className="bg-gray-50 p-2 justify-between items-center flex rounded-lg">
+                                    <h3 className="text-base font-semibold text-gray-800">Sales</h3>
+                                    <p className="text-gray-600 mt-1 pr-2">{pkg.sales || 0}</p>
                                   </div>
                                 </div>
                               </div>
